@@ -81,8 +81,8 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong@Passw0rd123" \
 
 ## 🤝 Team
 - **Tian Yuan (Tim)**: Developer + Scrum Master
-- **Kevin**: Project Manager
-- **Tan**: System Architect
+- **Zichun Zhang**: Developer
+- **Qiutong Li**: Developer
 
 ---
 *Generated for COMP9034 DevOps and Enterprise Systems Project*
