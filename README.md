@@ -1,218 +1,88 @@
-# Assignment Frontend - Attendance & Payroll Management System
+# 🚜 COMP9034 Farm Time Management System
 
-A modern, offline-first Progressive Web App (PWA) built with React 18, TypeScript, and Material UI for managing employee attendance, scheduling, and payroll.
+## 📊 Project Overview
+A modern farm attendance and payroll management system built with React frontend and .NET backend, featuring offline-first PWA capabilities and smart synchronization.
 
-## Features
+## 🏗️ Architecture
+- **Frontend**: React 18 + TypeScript + Material-UI + PWA
+- **Backend**: .NET 8 + SQL Server + Entity Framework
+- **Database**: SQL Server 2022 (Docker containerized)
+- **Offline Support**: IndexedDB + Service Worker
 
-### 🚀 Core Technologies
-- **React 18** with TypeScript
-- **Material UI (MUI v5)** for modern, touch-friendly UI
-- **React Router v6** for navigation
-- **React Query** (@tanstack/react-query) for data management
-- **Vite** for fast development and building
-- **PWA** support with offline capabilities
+## 📁 Project Structure
+```
+COMP9034-FarmTimeMS/
+├── frontend/          # 🖥️ React + TypeScript frontend application
+│   ├── src/          # React source code
+│   ├── public/       # Static assets
+│   └── package.json  # Frontend dependencies
+├── backend/           # ⚙️ .NET Core Web API backend  
+│   ├── Program.cs    # API entry point
+│   └── *.csproj      # Backend project file
+├── docs/             # 📄 Project documentation
+│   ├── FRONTEND_STATUS_REPORT.md
+│   ├── BACKEND_INTEGRATION.md
+│   └── SETUP.md
+└── README.md         # This file
+```
 
-### 📱 User Roles & Features
-
-#### Staff/Employee
-- **Clock Station**: Clock in/out, start/end breaks with large, touch-friendly buttons
-- **Offline Support**: Continue clocking even when offline - events sync automatically when connection is restored
-- **Work Schedule**: View upcoming shifts and schedule (demo data)
-- **Status Display**: Real-time work status (clocked in/out, on break)
-
-#### Manager
-- **Dashboard**: Overview of active staff, device status, and real-time metrics
-- **Attendance Management**: View, analyze, and export employee attendance data
-- **Work Hours Calculation**: Automatic calculation of work hours, break hours, and net hours
-- **Anomaly Detection**: Identify and report attendance irregularities
-- **CSV Export**: Export attendance reports for payroll processing
-
-#### Administrator (Placeholder)
-- Staff management interface
-- Device management interface  
-- Event management and audit trail
-
-### 🔧 Technical Features
-- **Offline-First**: Works without internet connection using IndexedDB
-- **Auto-Sync**: Offline events automatically sync when connection is restored
-- **Real-time Updates**: Live status updates and network monitoring
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **PWA**: Can be installed as an app on mobile devices and desktops
-
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
+- Node.js 22+ (for frontend)
+- .NET 8 SDK (for backend)
+- Docker Desktop (for SQL Server)
 
-### Installation
-
-1. **Clone and install dependencies:**
+### Frontend Development
 ```bash
-git clone <repository-url>
-cd assignment-frontend
+cd frontend
 npm install
-```
-
-2. **Start development server:**
-```bash
 npm run dev
+# Runs on http://localhost:3000
 ```
 
-3. **Open in browser:**
-```
-http://localhost:3000
-```
-
-### Environment Configuration
-
-Create a `.env` file in the project root (optional):
-```
-VITE_API_BASE_URL=https://flindersdevops.azurewebsites.net
-```
-
-Default API base URL is `https://flindersdevops.azurewebsites.net` if not specified.
-
-## Demo Credentials
-
-The app uses a simple authentication system for demonstration:
-
-| Role | Staff ID Range | PIN | Example |
-|------|---------------|-----|---------|
-| **Staff** | 1001-7999 | Any 4-digit PIN | ID: 1234, PIN: 0000 |
-| **Manager** | 8001-8999 | Any 4-digit PIN | ID: 8001, PIN: 1234 |
-| **Admin** | 9000+ | Any 4-digit PIN | ID: 9001, PIN: 9999 |
-
-## API Integration
-
-The app integrates with the following REST API endpoints:
-
-### Base URL
-`https://flindersdevops.azurewebsites.net/api`
-
-### Endpoints
-- `GET|POST /Biometric` - Biometric data management
-- `GET|POST|PUT|DELETE /Devices` - Clock device management  
-- `GET|POST|PUT|DELETE /Events` - Attendance events (clock in/out)
-- `GET|POST|PUT|DELETE /Staffs` - Employee management
-
-See `/src/api/client.ts` for full API integration details.
-
-## Project Structure
-
-```
-src/
-├── api/                    # API client and HTTP configuration
-│   ├── http.ts            # Axios setup with interceptors
-│   └── client.ts          # Typed API SDK for all endpoints
-├── types/                 # TypeScript type definitions
-│   └── api.ts             # API interfaces and types
-├── offline/               # Offline functionality
-│   ├── db.ts              # IndexedDB setup and operations
-│   └── sync.ts            # Offline queue and sync logic
-├── utils/                 # Utility functions
-│   ├── csv.ts             # CSV export functionality
-│   └── time.ts            # Time calculations and event pairing
-├── components/            # Reusable UI components
-│   ├── AppShell.tsx       # Main app layout with navigation
-│   ├── NetworkBadge.tsx   # Network status indicator
-│   ├── ExportCsvButton.tsx# CSV export button
-│   ├── DateRangePicker.tsx# Date range selector
-│   └── ConfirmDialog.tsx  # Confirmation dialog
-├── pages/                 # Application pages
-│   ├── Login.tsx          # Authentication page
-│   ├── Station.tsx        # Employee clock station
-│   ├── Roster.tsx         # Work schedule (demo)
-│   ├── ManagerDashboard.tsx # Manager overview
-│   └── ManagerAttendance.tsx # Attendance management
-├── App.tsx                # Main app with routing
-└── main.tsx               # Application entry point
-```
-
-## Key Features Details
-
-### Offline Support
-- Uses **IndexedDB** for local storage of offline events
-- Automatic background sync when connection is restored
-- Visual indicators for network status and pending sync items
-- Queue management with retry logic
-
-### Time Calculation Engine
-- Intelligent pairing of clock-in/out and break events
-- Handles cross-day events and multiple break periods
-- Anomaly detection for unpaired events or invalid durations
-- Accurate work hour calculations for payroll
-
-### PWA Capabilities
-- Service worker for offline functionality
-- App manifest for installation on devices
-- Cached API responses for offline browsing
-- Background sync for pending events
-
-## Development
-
-### Available Scripts
+### Backend Development  
 ```bash
-npm run dev        # Start development server
-npm run build      # Build for production
-npm run preview    # Preview production build
-npm run lint       # Run ESLint
-npm run lint:fix   # Fix ESLint issues
-npm run format     # Format code with Prettier
+cd backend
+dotnet restore
+dotnet run
+# Runs on http://localhost:5000
 ```
 
-### Building for Production
+### Database Setup
 ```bash
-npm run build
+# Start SQL Server container
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong@Passw0rd123" \
+   -p 1433:1433 --name comp9034-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest
 ```
 
-The built app will be in the `dist/` folder, ready for deployment to any static hosting service (IIS, Apache, Nginx, Netlify, Vercel, etc.).
+## 🎯 Key Features
+- **Multi-role Interface**: Staff, Manager, Admin dashboards
+- **Smart Clock System**: IN/OUT/BREAK events with offline support
+- **Intelligent Sync**: Automatic data synchronization when online
+- **Time Calculation**: Advanced work hours calculation with anomaly detection
+- **PWA Ready**: Installable app with offline capabilities
+- **Responsive Design**: Works on desktop, tablet, and mobile
 
-### Code Quality
-- **ESLint** for code linting
-- **Prettier** for code formatting
-- **TypeScript** for type safety
-- **Material UI** for consistent design system
+## 👥 User Roles
+- **Staff (ID: 1000-7999)**: Clock in/out, view personal roster
+- **Manager (ID: 8000-8999)**: Attendance reports, payroll, CSV export
+- **Admin (ID: 9000+)**: Staff management, device management, system audit
 
-## Deployment
+## 🛠️ Development Status
+- Frontend: **80% complete** - Core functionality implemented
+- Backend: **In development** - API endpoints being built
+- Database: **Ready** - Schema and containers configured
 
-### Windows Server / IIS
-1. Build the application: `npm run build`
-2. Copy `dist/` folder contents to IIS website directory
-3. Configure URL rewriting for SPA routing
-4. Set up HTTPS (recommended for PWA features)
+## 📚 Documentation
+- [Frontend Status Report](docs/FRONTEND_STATUS_REPORT.md) - Detailed frontend progress
+- [Backend Integration Guide](docs/BACKEND_INTEGRATION.md) - API integration instructions
+- [Setup Guide](docs/SETUP.md) - Development environment setup
 
-### Other Platforms
-The built application is a static website and can be deployed to:
-- Netlify
-- Vercel
-- GitHub Pages
-- AWS S3 + CloudFront
-- Any web server with static file hosting
-
-## Browser Support
-
-- **Chrome/Edge** 88+ (recommended)
-- **Firefox** 85+
-- **Safari** 14+
-- **Mobile browsers** with PWA support
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## License
-
-This project is proprietary software. All rights reserved.
-
-## Support
-
-For technical support or questions about this application, please contact the development team.
+## 🤝 Team
+- **Tian Yuan (Tim)**: Developer + Scrum Master
+- **Kevin**: Project Manager
+- **Tan**: System Architect
 
 ---
-
-**Built with ❤️ using React, TypeScript, and Material UI** 
+*Generated for COMP9034 DevOps and Enterprise Systems Project*
