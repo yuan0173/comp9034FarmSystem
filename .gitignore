@@ -78,5 +78,17 @@ coverage/
 .nyc_output/
 
 # OS generated files
-Thumbs.db 
->>>>>>> 0bda5f5 (Add: Add the basic front web)
+Thumbs.db
+
+# .NET Backend
+backend/bin/
+backend/obj/
+backend/*.user
+backend/*.suo
+backend/.vs/
+
+# Azure Data Studio
+*.azuredatastudio/
+
+# Claude Code configuration
+.claude/
