@@ -90,3 +90,6 @@ backend/.vs/
 
 # Claude Code configuration
 .claude/
+
+# AI Assistant Generated Documentation
+ai-docs/

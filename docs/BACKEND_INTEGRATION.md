@@ -21,10 +21,14 @@ The frontend follows a modular architecture with clear separation of concerns:
 The frontend uses the following environment variable for backend configuration:
 
 ```bash
+# Development (default)
+VITE_API_BASE_URL=http://localhost:4000
+
+# Production/Azure deployment
 VITE_API_BASE_URL=https://flindersdevops.azurewebsites.net
 ```
 
-**Default Fallback**: If not set, defaults to `https://flindersdevops.azurewebsites.net`
+**Default Fallback**: If not set, defaults to `http://localhost:4000` (local development)
 
 ### HTTP Client Configuration
 
@@ -33,7 +37,7 @@ The frontend uses Axios with the following configuration:
 ```typescript
 // Base configuration
 {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://flindersdevops.azurewebsites.net',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -496,7 +500,7 @@ maxAgeSeconds: 60 * 60 * 24 // 24 hours
 npm run dev  # Runs on http://localhost:3000
 
 # Environment variables
-VITE_API_BASE_URL=http://localhost:5000  # Point to local backend
+VITE_API_BASE_URL=http://localhost:4000  # Point to local backend
 ```
 
 ### Testing Backend Integration
@@ -542,16 +546,19 @@ The frontend provides real-time connection status:
 ### Common Issues
 
 1. **CORS Errors**
+
    - Check browser console for CORS messages
    - Verify backend CORS configuration
    - Ensure preflight requests are handled
 
 2. **Connection Detection Fails**
+
    - Verify `/api/Staffs` endpoint exists and responds
    - Check network timeout settings
    - Monitor browser network tab during connection checks
 
 3. **Data Not Loading**
+
    - Check API response format matches expected interfaces
    - Verify HTTP status codes are correct
    - Ensure JSON content-type headers are set
@@ -578,3 +585,129 @@ For integration questions or issues:
 4. Monitor network requests in browser developer tools
 
 The frontend is designed to be resilient and will gracefully handle backend unavailability while providing clear feedback to users about the current operational mode.
+
+## Frontend Architecture Details
+
+### Technology Stack Overview
+
+```
+React 18.2.0          - Modern UI framework with concurrent features
+TypeScript 5.2.2      - Type safety and enterprise-grade development
+Material-UI v5.14.20  - Google Material Design component library
+Vite 5.0.8            - Fast build tool and development server
+React Query v5.8.4    - Server state management and caching
+React Router v6       - Client-side routing
+PWA Support           - Service worker and offline capabilities
+IndexedDB            - Local storage for offline functionality
+Axios               - HTTP client with interceptors
+```
+
+### Smart Mode Switching Architecture
+
+The frontend automatically adapts between two operational modes:
+
+**Demo Mode (Backend Unavailable)**:
+
+- Uses mock data and local storage
+- Shows blue info alerts on pages
+- Events stored in IndexedDB for later sync
+- Enables development and demonstration without backend
+
+**Production Mode (Backend Connected)**:
+
+- Real API calls to backend
+- Full offline-first functionality with sync
+- No demo alerts shown
+- Automatic failover to offline mode when needed
+
+**Connection Detection**:
+
+- **Endpoint**: `GET /api/Staffs?limit=1`
+- **Timeout**: 5 seconds
+- **Frequency**: Every 30 seconds + network change events
+- **Triggers**: App startup, window focus, manual refresh
+
+### Offline-First Design
+
+**Event Queuing System**:
+
+- Failed API calls automatically queue events in IndexedDB
+- FIFO (First In, First Out) sync order when connection restored
+- Visual indicators for pending sync items
+- Graceful handling of network interruptions
+
+**Auto-Sync Triggers**:
+
+- Network online event detection
+- Application focus/visibility change
+- Manual user sync action
+- Periodic background checks
+
+**PWA Service Worker**:
+
+- NetworkFirst caching strategy for API calls
+- 24-hour cache expiration for API responses
+- Automatic service worker updates
+- Offline page serving capabilities
+
+### Time Calculation Engine
+
+**Event Pairing Algorithm**:
+
+- Intelligent matching of IN/OUT events
+- BREAK_START/BREAK_END pairing
+- Cross-day shift handling
+- Anomaly detection for unpaired events
+
+**Work Hours Calculation**:
+
+- Precise duration calculations
+- Break time subtraction
+- Overtime detection
+- Validation of reasonable work periods
+
+### Authentication & Role Management
+
+**PIN-Based Authentication**:
+
+- Staff ID ranges determine roles automatically:
+  - `1000-7999`: Staff/Employee role
+  - `8000-8999`: Manager role
+  - `9000+`: Administrator role
+- Session persistence via localStorage
+- Automatic role-based navigation
+
+**JWT Integration Ready**:
+
+- Request interceptors prepared for token injection
+- Authorization header management
+- Token refresh logic placeholder
+
+### Development Guidelines
+
+**API Client Usage**:
+
+```typescript
+// Using the typed API client
+import { staffApi, eventApi } from '@/api/client'
+
+// Get staff with automatic error handling
+const staff = await staffApi.getAll()
+
+// Create event with offline queue fallback
+await eventApi.create(eventData)
+```
+
+**Error Handling Strategy**:
+
+- Network errors automatically trigger offline mode
+- API errors show user-friendly messages
+- Validation errors highlight specific form fields
+- Global error boundary for unexpected errors
+
+**TypeScript Integration**:
+
+- All API responses are fully typed
+- Strict type checking enabled
+- Interface definitions in `src/types/api.ts`
+- Runtime type validation for critical data
