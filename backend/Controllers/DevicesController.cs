@@ -100,7 +100,7 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 var device = await _context.Devices
-                    .Include(d => d.Events.OrderByDescending(e => e.Timestamp).Take(10))
+                    .Include(d => d.Events.OrderByDescending(e => e.TimeStamp).Take(10))
                     .FirstOrDefaultAsync(d => d.Id == id && d.IsActive);
 
                 if (device == null)

@@ -1,43 +1,43 @@
--- COMP9034 FarmTimeMS 数据库初始化脚本
--- 创建时间: 2025-08-28
--- 数据库: SQLite (开发环境) / SQL Server (生产环境)
+-- COMP9034 FarmTimeMS Database Initialization Script
+-- Created: 2025-08-28
+-- Database: SQLite (Development) / SQL Server (Production)
 
 -- ============================================
--- 员工表 (Staffs)
+-- Staff Table (Staffs)
 -- ============================================
--- 员工表在代码中通过Entity Framework自动创建
--- 默认包含以下示例数据:
+-- Staff table is automatically created through Entity Framework in code
+-- Default includes the following sample data:
 -- ID 9001: System Administrator (admin)
 -- ID 8001: Farm Manager (manager)  
 -- ID 1001: Farm Worker (staff)
 
 -- ============================================
--- 设备表 (Devices)
+-- Device Table (Devices)
 -- ============================================
--- 设备表在代码中通过Entity Framework自动创建
--- 默认包含以下示例数据:
+-- Device table is automatically created through Entity Framework in code
+-- Default includes the following sample data:
 -- ID 1: Main Terminal (terminal)
 -- ID 2: Biometric Scanner (biometric)
 
 -- ============================================
--- 事件表 (Events)
+-- Event Table (Events)
 -- ============================================
--- 考勤事件表，用于记录员工打卡记录
--- 支持的事件类型: IN, OUT, BREAK_START, BREAK_END, OTHER
+-- Attendance event table for recording employee clock-in records
+-- Supported event types: IN, OUT, BREAK_START, BREAK_END, OTHER
 
 -- ============================================
--- 生物识别数据表 (BiometricData)
+-- Biometric Data Table (BiometricData)
 -- ============================================
--- 生物识别模板数据表，支持指纹、人脸等识别类型
--- 模板数据加密存储
+-- Biometric template data table, supports fingerprint, face recognition types
+-- Template data stored encrypted
 
 -- ============================================
--- 示例数据插入 (可选)
+-- Sample Data Insertion (Optional)
 -- ============================================
 
--- 插入更多示例员工数据
+-- Insert additional sample staff data
 -- INSERT INTO Staffs (Id, Name, Role, Pin, HourlyRate, Email, Phone, IsActive, CreatedAt, UpdatedAt) VALUES
--- (1002, '张三', 'staff', '1002', 25.00, 'zhangsan@farmtimems.com', '13800138001', 1, datetime('now'), datetime('now')),
+-- (1002, 'John Smith', 'staff', '1002', 25.00, 'john.smith@farmtimems.com', '+61 400 123 001', 1, datetime('now'), datetime('now')),
 -- (1003, '李四', 'staff', '1003', 25.00, 'lisi@farmtimems.com', '13800138002', 1, datetime('now'), datetime('now')),
 -- (8002, '王经理', 'manager', '8002', 35.00, 'wangmanager@farmtimems.com', '13800138003', 1, datetime('now'), datetime('now'));
 
