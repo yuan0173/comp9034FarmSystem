@@ -12,11 +12,11 @@ const httpClient = axios.create({
 // Request interceptor for adding auth headers if needed
 httpClient.interceptors.request.use(
   config => {
-    // Add any auth headers here if needed
-    // const token = localStorage.getItem('authToken')
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`
-    // }
+    // Add JWT token to requests if available
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   error => {
