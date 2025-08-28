@@ -105,7 +105,7 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 var staff = await _context.Staffs
-                    .Include(s => s.Events.OrderByDescending(e => e.Timestamp).Take(10))
+                    .Include(s => s.Events.OrderByDescending(e => e.TimeStamp).Take(10))
                     .Include(s => s.BiometricData)
                     .FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
 
@@ -342,9 +342,10 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Check for recent duplicate entries (within 1 minute)
+                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
                 var recentEvent = await _context.Events
                     .Where(e => e.StaffId == id && e.EventType == eventType)
-                    .Where(e => e.Timestamp > DateTime.UtcNow.AddMinutes(-1))
+                    .Where(e => e.TimeStamp.CompareTo(oneMinuteAgo) > 0)
                     .FirstOrDefaultAsync();
 
                 if (recentEvent != null)
@@ -356,10 +357,11 @@ namespace COMP9034.Backend.Controllers
                 var newEvent = new Event
                 {
                     StaffId = id,
+                    DeviceId = 1, // Default device
                     EventType = eventType,
-                    Timestamp = DateTime.UtcNow,
+                    TimeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     CreatedAt = DateTime.UtcNow,
-                    Notes = $"Quick {eventType.ToLower()} via API"
+                    Reason = $"Quick {eventType.ToLower()} via API"
                 };
 
                 _context.Events.Add(newEvent);
@@ -368,8 +370,8 @@ namespace COMP9034.Backend.Controllers
                 _logger.LogInformation($"Quick clock {eventType}: Staff ID={id}");
                 return Ok(new { 
                     message = $"Clock {eventType.ToLower()} successful",
-                    eventId = newEvent.Id,
-                    timestamp = newEvent.Timestamp,
+                    eventId = newEvent.EventId,
+                    timeStamp = newEvent.TimeStamp,
                     staffName = staff.Name
                 });
             }

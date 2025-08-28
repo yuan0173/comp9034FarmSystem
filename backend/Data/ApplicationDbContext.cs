@@ -42,21 +42,37 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex(e => e.Username).IsUnique().HasFilter("[Username] IS NOT NULL");
             });
 
-            // Event 实体配置
+            // Event 实体配置 (aligned with frontend)
             modelBuilder.Entity<Event>(entity =>
             {
-                entity.HasKey(e => e.Id);
+                entity.HasKey(e => e.EventId);
                 entity.Property(e => e.EventType).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.Reason).HasMaxLength(500);
+                entity.Property(e => e.TimeStamp).IsRequired().HasMaxLength(50);
+                
+                // Staff relationship (optional for API flexibility)
                 entity.HasOne(d => d.Staff)
                     .WithMany(p => p.Events)
                     .HasForeignKey(d => d.StaffId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
+                
+                // Device relationship  
                 entity.HasOne(d => d.Device)
                     .WithMany(p => p.Events)
                     .HasForeignKey(d => d.DeviceId)
                     .OnDelete(DeleteBehavior.SetNull);
-                entity.HasIndex(e => new { e.StaffId, e.Timestamp });
+                
+                // Admin relationship (new)
+                entity.HasOne(d => d.Admin)
+                    .WithMany()
+                    .HasForeignKey(d => d.AdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                
+                // Indexes
+                entity.HasIndex(e => new { e.StaffId, e.TimeStamp });
+                entity.HasIndex(e => e.EventType);
+                entity.HasIndex(e => e.AdminId);
             });
 
             // Device 实体配置

@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace COMP9034.Backend.Middlewares
 {
     /// <summary>
-    /// 全局异常处理中间件
+    /// Global exception handling middleware
     /// </summary>
     public class GlobalExceptionMiddleware
     {
@@ -26,7 +26,7 @@ namespace COMP9034.Backend.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "发生未处理的异常: {Message}", ex.Message);
+                _logger.LogError(ex, "Unhandled exception occurred: {Message}", ex.Message);
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -41,30 +41,30 @@ namespace COMP9034.Backend.Middlewares
             {
                 case ArgumentNullException:
                 case ArgumentException:
-                    response = ApiResponse<object>.CreateError("请求参数无效", exception.Message);
+                    response = ApiResponse<object>.CreateError("Invalid request parameters", exception.Message);
                     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                     break;
                     
                 case UnauthorizedAccessException:
-                    response = ApiResponse<object>.CreateError("未授权访问", exception.Message);
+                    response = ApiResponse<object>.CreateError("Unauthorized access", exception.Message);
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     break;
                     
                 case KeyNotFoundException:
-                    response = ApiResponse<object>.CreateError("请求的资源未找到", exception.Message);
+                    response = ApiResponse<object>.CreateError("Requested resource not found", exception.Message);
                     context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                     break;
                     
                 case TimeoutException:
-                    response = ApiResponse<object>.CreateError("请求超时", exception.Message);
+                    response = ApiResponse<object>.CreateError("Request timeout", exception.Message);
                     context.Response.StatusCode = (int)HttpStatusCode.RequestTimeout;
                     break;
                     
                 default:
-                    response = ApiResponse<object>.CreateError("内部服务器错误", 
+                    response = ApiResponse<object>.CreateError("Internal server error", 
                         Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" 
                             ? exception.Message 
-                            : "服务器发生错误，请稍后重试");
+                            : "Server error occurred, please try again later");
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     break;
             }
@@ -79,7 +79,7 @@ namespace COMP9034.Backend.Middlewares
     }
 
     /// <summary>
-    /// 全局异常中间件扩展
+    /// Global exception middleware extensions
     /// </summary>
     public static class GlobalExceptionMiddlewareExtensions
     {

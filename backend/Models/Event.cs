@@ -1,14 +1,17 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Attendance event entity model
+    /// Attendance event entity model - aligned with frontend expectations
     /// </summary>
     public class Event
     {
         /// <summary>
-        /// Event ID
+        /// Event ID (aligned with frontend: eventId)
         /// </summary>
-        public int Id { get; set; }
+        [Column("Id")]
+        public int EventId { get; set; }
 
         /// <summary>
         /// Staff ID
@@ -16,9 +19,14 @@ namespace COMP9034.Backend.Models
         public int StaffId { get; set; }
 
         /// <summary>
-        /// Device ID (optional)
+        /// Device ID (required to match frontend)
         /// </summary>
-        public int? DeviceId { get; set; }
+        public int DeviceId { get; set; }
+
+        /// <summary>
+        /// Admin ID (added to match frontend expectations)
+        /// </summary>
+        public int? AdminId { get; set; }
 
         /// <summary>
         /// Event type: 'IN', 'OUT', 'BREAK_START', 'BREAK_END', 'OTHER'
@@ -26,22 +34,25 @@ namespace COMP9034.Backend.Models
         public string EventType { get; set; } = string.Empty;
 
         /// <summary>
-        /// Event timestamp
+        /// Event timestamp (aligned with frontend: timeStamp)
         /// </summary>
-        public DateTime Timestamp { get; set; }
+        [Column("Timestamp")]
+        public string TimeStamp { get; set; } = string.Empty;
 
         /// <summary>
-        /// Notes
+        /// Reason/Notes (aligned with frontend: reason)
         /// </summary>
-        public string? Notes { get; set; }
+        [Column("Notes")]
+        public string? Reason { get; set; }
 
         /// <summary>
-        /// Creation timestamp
+        /// Creation timestamp (for internal tracking)
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
-        public virtual Staff Staff { get; set; } = null!;
+        // Navigation properties (made optional for API flexibility)
+        public virtual Staff? Staff { get; set; }
         public virtual Device? Device { get; set; }
+        public virtual Staff? Admin { get; set; }
     }
 }
