@@ -34,6 +34,7 @@ namespace COMP9034.Backend.Controllers
         /// <param name="request">Login credentials</param>
         /// <returns>JWT token and user information</returns>
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
         {
             var ipAddress = GetClientIpAddress();
@@ -98,6 +99,7 @@ namespace COMP9034.Backend.Controllers
         /// <param name="request">PIN login request</param>
         /// <returns>JWT token and user information</returns>
         [HttpPost("login-pin")]
+        [AllowAnonymous]
         public async Task<ActionResult<LoginResponse>> LoginWithPin([FromBody] PinLoginRequest request)
         {
             var ipAddress = GetClientIpAddress();

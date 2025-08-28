@@ -174,9 +174,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Use CORS
-app.UseCors("AllowFrontend");
-
 // HTTPS redirection (production environment)
 if (!app.Environment.IsDevelopment())
 {
@@ -184,6 +181,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseCors("AllowFrontend");  // ✅ CORS必须在认证之前，路由之后
 app.UseAuthentication();
 app.UseAuthorization();
 

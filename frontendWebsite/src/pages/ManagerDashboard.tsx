@@ -186,15 +186,15 @@ export function ManagerDashboard({ currentUser }: ManagerDashboardProps) {
               ) : (
                 <List>
                   {activeStaffDetails.slice(0, 10).map((staff, index) => (
-                    <React.Fragment key={staff.staffId}>
+                    <React.Fragment key={staff.id}>
                       <ListItem sx={{ px: 0 }}>
                         <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                          {staff.firstName[0]}
-                          {staff.lastName[0]}
+                          {staff.name?.[0] || 'U'}
+                          {staff.name?.split(' ')?.[1]?.[0] || ''}
                         </Avatar>
                         <ListItemText
-                          primary={`${staff.firstName} ${staff.lastName}`}
-                          secondary={`ID: ${staff.staffId} • ${staff.role}`}
+                          primary={staff.name || 'Unknown'}
+                          secondary={`ID: ${staff.id} • ${staff.role}`}
                         />
                         <Chip label="Active" color="success" size="small" />
                       </ListItem>
