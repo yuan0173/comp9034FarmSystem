@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import { Person, Lock } from '@mui/icons-material'
 import { CurrentUser, UserRole } from '../types/api'
-import { staffApi } from '../api/client'
+import { authApi } from '../api/client'
 
 interface LoginProps {
   onLogin: (user: CurrentUser) => void
@@ -61,32 +61,40 @@ export function Login({ onLogin }: LoginProps) {
         return
       }
 
-      // Try to fetch staff details from API
-      const staffDetails = await staffApi.getById(staffIdNum)
+      // Use the proper authentication API
+      const loginResponse = await authApi.loginWithPin(staffIdNum, pin)
+      
+      if (loginResponse && loginResponse.staff) {
+        const currentUser: CurrentUser = {
+          staffId: loginResponse.staff.id,
+          firstName: loginResponse.staff.name.split(' ')[0] || '',
+          lastName: loginResponse.staff.name.split(' ').slice(1).join(' ') || '',
+          role: loginResponse.staff.role as UserRole,
+          pin: pin,
+        }
 
-      const userRole = determineUserRole(staffIdNum)
-      const currentUser: CurrentUser = {
-        staffId: staffDetails.staffId,
-        firstName: staffDetails.firstName,
-        lastName: staffDetails.lastName,
-        role: userRole,
-        pin: pin,
-      }
+        // Store the JWT token for future API calls
+        if (loginResponse.token) {
+          localStorage.setItem('authToken', loginResponse.token)
+        }
 
-      onLogin(currentUser)
+        onLogin(currentUser)
 
-      // Navigate based on role
-      switch (userRole) {
-        case 'admin':
-          navigate('/admin/staffs')
-          break
-        case 'manager':
-          navigate('/manager')
-          break
-        case 'staff':
-        default:
-          navigate('/station')
-          break
+        // Navigate based on role
+        switch (currentUser.role) {
+          case 'admin':
+            navigate('/admin/staffs')
+            break
+          case 'manager':
+            navigate('/manager')
+            break
+          case 'staff':
+          default:
+            navigate('/station')
+            break
+        }
+      } else {
+        throw new Error('Invalid login response')
       }
     } catch (error) {
       console.error('Login error:', error)

@@ -39,10 +39,10 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
   // Filter staffs based on search query
   const filteredStaffs = staffs.filter(
     staff =>
-      staff.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.staffId.toString().includes(searchQuery)
+      staff.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.id?.toString().includes(searchQuery) ||
+      staff.username?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const getStatusColor = (isActive: boolean) => {
@@ -135,28 +135,28 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
                 </TableHead>
                 <TableBody>
                   {filteredStaffs.map(staff => (
-                    <TableRow key={staff.staffId}>
+                    <TableRow key={staff.id}>
                       <TableCell>
                         <Typography variant="body2" fontWeight="bold">
-                          {staff.staffId}
+                          {staff.id}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {staff.firstName} {staff.lastName}
+                          {staff.name}
                         </Typography>
                       </TableCell>
                       <TableCell>{staff.email}</TableCell>
                       <TableCell>
                         <Chip
-                          label={staff.role}
+                          label={staff.role || 'N/A'}
                           size="small"
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell>{staff.contractType}</TableCell>
+                      <TableCell>Full-time</TableCell>
                       <TableCell>
-                        ${staff.standardPayRate.toFixed(2)}/hr
+                        ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                       </TableCell>
                       <TableCell align="center">
                         <Chip
@@ -171,7 +171,7 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
                           variant="outlined"
                           onClick={() =>
                             alert(
-                              `Edit functionality for ${staff.firstName} ${staff.lastName} would be implemented here`
+                              `Edit functionality for ${staff.name} would be implemented here`
                             )
                           }
                         >
@@ -218,10 +218,10 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" color="secondary.main">
-                  {staffs.filter(s => s.contractType === 'Full-time').length}
+                  {staffs.filter(s => s.role === 'admin' || s.role === 'manager').length}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Full-time
+                  Admin/Manager
                 </Typography>
               </CardContent>
             </Card>
@@ -231,8 +231,8 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" color="warning.main">
                   $
-                  {staffs.reduce((sum, s) => sum + s.standardPayRate, 0) /
-                    staffs.length}
+                  {(staffs.reduce((sum, s) => sum + (s.hourlyRate || 0), 0) /
+                    staffs.length).toFixed(2)}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Avg. Pay Rate

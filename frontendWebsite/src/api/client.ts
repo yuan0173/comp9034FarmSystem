@@ -129,4 +129,33 @@ export const staffApi = {
   delete: async (id: number): Promise<void> => {
     await httpClient.delete(`/api/Staffs/${id}`)
   }
+}
+
+// Auth API
+export const authApi = {
+  loginWithPin: async (staffId: number, pin: string) => {
+    const response = await httpClient.post('/api/Auth/login-pin', {
+      staffId,
+      pin
+    })
+    return response.data
+  },
+
+  login: async (username: string, password: string) => {
+    const response = await httpClient.post('/api/Auth/login', {
+      username,
+      password
+    })
+    return response.data
+  },
+
+  getCurrentUser: async () => {
+    const response = await httpClient.get('/api/Auth/me')
+    return response.data
+  },
+
+  logout: async () => {
+    const response = await httpClient.post('/api/Auth/logout')
+    return response.data
+  }
 } 
