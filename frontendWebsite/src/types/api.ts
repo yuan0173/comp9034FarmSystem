@@ -22,18 +22,21 @@ export interface Event {
 }
 
 export interface Staff {
-  staffId: number
-  firstName: string
-  lastName: string
+  id: number
+  name: string
   email: string
-  phone: string
-  address: string
-  contractType: string
-  isActive: boolean
+  phone?: string
+  address?: string
+  username?: string
+  pin: string
+  passwordHash: string
   role: string
-  standardHoursPerWeek: number
-  standardPayRate: number
-  overtimePayRate: number
+  hourlyRate: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  events: Event[]
+  biometricData: BiometricData[]
 }
 
 // Event types enumeration
