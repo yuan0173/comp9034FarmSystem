@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { eventApi } from '../api/client'
 import {
   Box,
   Card,
@@ -126,19 +128,34 @@ export function AdminEvents({ currentUser: _currentUser }: AdminEventsProps) {
     1006: 'Lisa Chen',
   }
 
-  // Use mock data directly for demo
-  const events = mockEvents
-  const isLoading = false
+  const queryClient = useQueryClient()
+
+  // Fetch events from API
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => eventApi.getAll(),
+  })
+
+  // Delete event mutation
+  const deleteEventMutation = useMutation({
+    mutationFn: (id: number) => eventApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete event:', error)
+    },
+  })
 
   // Filter events based on search query and type filter
   const filteredEvents = events.filter(event => {
     const matchesSearch =
-      event.staffId.toString().includes(searchQuery) ||
-      staffNames[event.staffId]
+      event.staffId?.toString().includes(searchQuery) ||
+      staffNames[event.staffId!]
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      event.eventType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.reason.toLowerCase().includes(searchQuery.toLowerCase())
+      event.eventType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.reason?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesType =
       eventTypeFilter === 'all' || event.eventType === eventTypeFilter
@@ -177,19 +194,18 @@ export function AdminEvents({ currentUser: _currentUser }: AdminEventsProps) {
   }
 
   const handleEditEvent = (eventId: number) => {
-    alert(
-      `Edit Event ${eventId} - would open edit dialog in full implementation`
-    )
+    // For now, just alert - full edit functionality can be added later
+    alert(`Edit Event ${eventId} - Edit functionality would be here`)
   }
 
   const handleDeleteEvent = (eventId: number) => {
-    alert(
-      `Delete Event ${eventId} - would show confirmation dialog in full implementation`
-    )
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      deleteEventMutation.mutate(eventId)
+    }
   }
 
   const handleRefresh = () => {
-    alert('Refresh - would reload event data from API in full implementation')
+    queryClient.invalidateQueries({ queryKey: ['events'] })
   }
 
   const getEventStats = () => {
