@@ -78,6 +78,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:3000",  // Development frontend (standard port)
+            "http://localhost:3001",  // Fallback port when 3000 is occupied
             "https://localhost:3000",
             "http://10.14.12.177:3000",
             "http://192.168.64.1:3000",
