@@ -1,23 +1,20 @@
-# 🚜 COMP9034 Farm Time Management System
+# COMP9034 Farm Time Management System
 
-## 📊 Project Overview
+A comprehensive modern farm attendance and payroll management system with offline-first PWA capabilities, intelligent synchronization, comprehensive audit logging, and enterprise-grade security.
 
-A comprehensive modern farm attendance and payroll management system built with React frontend and .NET backend. Features offline-first PWA capabilities, intelligent synchronization, comprehensive audit logging, and enterprise-grade security.
-
-## 🏗️ Architecture
+## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Material-UI v5 + Vite + PWA
-- **Backend**: .NET 8 Web API + Entity Framework Core + SQLite/SQL Server
-- **Database**: SQLite (Development) / SQL Server (Production) with comprehensive schema
-- **Authentication**: JWT Bearer Token + PIN/Password Login + Role-based Access Control
-- **API**: RESTful API with Swagger documentation and comprehensive error handling
-- **Offline Support**: IndexedDB + Service Worker + Smart Synchronization
+- **Backend**: .NET 8 Web API + Entity Framework Core
+- **Database**: SQLite (Development) / SQL Server (Production)
+- **Authentication**: JWT Bearer Token + PIN/Password + Role-based Access Control
+- **Features**: Offline Support, Real-time Sync, Audit Logging, RESTful API with Swagger
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 COMP9034-FarmTimeMS/
-├── frontendWebsite/          # 🖥️ React + TypeScript frontend (Vite)
+├── frontendWebsite/          # React + TypeScript frontend
 │   ├── src/
 │   │   ├── components/       # Reusable UI components
 │   │   ├── pages/           # Application pages/views
@@ -26,24 +23,28 @@ COMP9034-FarmTimeMS/
 │   │   ├── offline/         # PWA offline functionality
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── utils/           # Utility functions
-│   ├── public/              # Static assets and PWA icons
-│   └── package.json         # Frontend dependencies
-├── backend/                  # ⚙️ .NET 8 Web API backend
-│   ├── Program.cs           # API entry point and configuration
-│   ├── Controllers/         # API controllers (Auth, Staff, Events, etc.)
-│   ├── Models/              # Entity models (Staff, Event, Device, etc.)
+│   └── public/              # Static assets and PWA icons
+├── backend/                  # .NET 8 Web API backend
+│   ├── Controllers/         # API controllers
+│   ├── Models/              # Entity models
 │   ├── Services/            # Business logic services
-│   ├── Data/                # Database context and configuration
+│   ├── Data/                # Database context
 │   ├── DTOs/                # Data Transfer Objects
-│   ├── Middlewares/         # Custom middleware (logging, exceptions)
-│   ├── Database/            # Migration scripts and initialization
-│   └── farmtimems-dev.db    # SQLite database (development)
-├── docs/                    # 📄 Project documentation
-├── ai-docs/                 # 🤖 AI-generated documentation
-└── README.md                # This file
+│   ├── Middlewares/         # Custom middleware
+│   ├── Database/            # Migration scripts
+│   └── logs/                # Application logs
+├── docs/                    # Project documentation
+└── ai-docs/                 # AI-generated documentation
 ```
 
-## 🚀 Quick Start
+## Server Configuration & Setup
+
+### Environment Overview
+
+| Environment     | Frontend URL            | Backend URL                                | Database                     | Purpose                     |
+| --------------- | ----------------------- | ------------------------------------------ | ---------------------------- | --------------------------- |
+| **Development** | `http://localhost:3000` | `http://localhost:4000`                    | SQLite (`farmtimems-dev.db`) | Local development & testing |
+| **Production**  | Cloud deployment        | `https://flindersdevops.azurewebsites.net` | Azure SQL Server             | Live deployment & usage     |
 
 ### Prerequisites
 
@@ -51,55 +52,64 @@ COMP9034-FarmTimeMS/
 - **.NET 8 SDK** (for backend development)
 - **SQLite** (embedded database for development)
 
-### Standard Port Configuration
+### Server Startupx
 
-- **Frontend**: `http://localhost:3000` (React/Vite development server)
-- **Backend**: `http://localhost:4000` (ASP.NET Core Web API)
+#### Option 1: Start Both Servers Simultaneously
 
-### Frontend Development
+```bash
+# Terminal 1: Backend Server
+cd backend
+dotnet restore
+dotnet run --urls=http://localhost:4000
+
+# Terminal 2: Frontend Server
+cd frontendWebsite
+npm install
+npm run dev
+```
+
+#### Option 2: Individual Server Management
+
+**Backend Only:**
+
+```bash
+cd backend
+dotnet restore
+dotnet build
+dotnet run --urls=http://localhost:4000
+# API Documentation: http://localhost:4000/swagger
+```
+
+**Frontend Only:**
 
 ```bash
 cd frontendWebsite
 npm install
 npm run dev
-# Runs on http://localhost:3000
+# Application: http://localhost:3000
 ```
 
-### Backend Development
+### Server Status Verification
 
 ```bash
-cd backend
-dotnet restore
-dotnet run --urls=http://localhost:4000
-# Runs on http://localhost:4000
-# API Documentation: http://localhost:4000 (Swagger UI)
+# Check if servers are running
+curl http://localhost:4000/health    # Backend health check
+curl http://localhost:3000           # Frontend accessibility
 ```
 
-### Full System Setup
-
-```bash
-# Terminal 1: Start Backend
-cd backend
-dotnet run --urls=http://localhost:4000
-
-# Terminal 2: Start Frontend
-cd frontendWebsite
-npm run dev
-```
-
-## 🎯 Enhanced Features
+## Key Features
 
 ### Core Functionality
 
-- **Multi-role Interface**: Staff, Manager, Admin dashboards with role-specific permissions
+- **Multi-role Dashboard**: Staff, Manager, Admin interfaces with role-based permissions
 - **Smart Clock System**: IN/OUT/BREAK events with intelligent validation
 - **Offline-First PWA**: Full offline functionality with automatic synchronization
 - **Advanced Time Tracking**: Precise work hours calculation with break management
 - **Real-time Status**: Live connection status and sync indicators
 
-### New Database Features (Post-Migration)
+### Database & Management
 
-- **Comprehensive Staff Management**: Extended staff profiles with contact information
+- **Comprehensive Staff Profiles**: Extended information with contact details
 - **Device Management**: Multi-device support with biometric integration
 - **Audit Logging**: Complete system audit trail with user action tracking
 - **Login History**: Detailed login logs with security monitoring
@@ -107,15 +117,15 @@ npm run dev
 - **Payroll Integration**: Salary calculation framework (foundation implemented)
 - **Biometric Verification**: Fingerprint/face recognition support (foundation implemented)
 
-### Technical Enhancements
+### Technical Excellence
 
 - **Frontend-Backend Alignment**: Unified data models and naming conventions
-- **Internationalization**: Complete English localization across all components
-- **Port Standardization**: Consistent port configuration (3000/4000)
-- **Error Handling**: Comprehensive global exception middleware
-- **API Documentation**: Complete Swagger documentation with examples
+- **Complete Internationalization**: Full English localization across all components
+- **Standardized Configuration**: Consistent port setup (Frontend:3000, Backend:4000)
+- **Robust Error Handling**: Comprehensive global exception middleware
+- **API Documentation**: Complete Swagger documentation with interactive examples
 
-## 🧪 Test Accounts
+## Test Accounts
 
 ### 1. **System Administrator**
 
@@ -153,23 +163,26 @@ npm run dev
 - **Role**: staff
 - **Access**: Clock in/out, personal attendance, basic station functions
 
-## 🎯 Testing Guidelines
+## Testing & Usage
 
-### Testing Workflow
+### Quick Testing Steps
 
-1. **Access Application**: Navigate to `http://localhost:3000`
-2. **Role-based Testing**: Login with each test account to verify role-specific features
-3. **Offline Testing**: Disconnect internet and test offline clock-in/out functionality
-4. **Sync Testing**: Reconnect and verify automatic data synchronization
-5. **Cross-device Testing**: Test responsive design on different screen sizes
+1. **Start Servers**: Follow server startup instructions above
+2. **Access Application**: Navigate to `http://localhost:3000`
+3. **Login**: Use test accounts below to access different role interfaces
+4. **Test Features**:
+   - Clock in/out functionality
+   - Offline mode (disconnect internet)
+   - Data synchronization (reconnect internet)
+   - Role-specific features
 
-### Expected Results
+### Expected Behavior
 
-- **Admin (9001)**: Full access to staff management, device configuration, system audit
-- **Manager (8001)**: Access to reports, analytics, payroll features
-- **Staff (1001/2001)**: Limited access to personal station and attendance features
+- **Admin (9001)**: Complete system access, staff management, device configuration
+- **Manager (8001)**: Reports, analytics, payroll management, CSV exports
+- **Staff (1001/2001)**: Personal clock station, attendance history, limited access
 
-## 👥 User Role Permissions
+## User Role Permissions
 
 ### Staff (ID: 1000-7999)
 
@@ -195,40 +208,29 @@ npm run dev
 - Biometric data management
 - System configuration
 
-## 🛠️ Development Status
+## Development Status
 
-### Frontend (✅ Complete)
+### Completed Components
 
-- React 18 with TypeScript strict mode
-- Material-UI v5 modern design system
-- PWA with offline functionality
-- Smart synchronization system
-- Responsive design for all devices
+**Frontend Application**
 
-### Backend (✅ Complete)
+- React 18 + TypeScript + Material-UI v5 + PWA
+- Offline functionality with smart synchronization
+- Role-based interfaces and responsive design
 
-- .NET 8 Web API with Entity Framework Core
-- Comprehensive RESTful API endpoints
-- JWT authentication with role-based authorization
-- Global exception handling and logging
-- Database migration system
+**Backend API**
 
-### Database (✅ Complete)
+- .NET 8 Web API + Entity Framework Core
+- RESTful endpoints + JWT authentication + role-based authorization
+- Global exception handling and comprehensive logging
+
+**Database & Integration**
 
 - SQLite development database with comprehensive schema
-- Sample data for testing all features
-- Migration scripts for schema updates
-- Audit logging infrastructure
-- Biometric data support
+- Complete sample data and migration scripts
+- Frontend-backend alignment + unified error handling
 
-### Integration (✅ Complete)
-
-- Frontend-backend data model alignment
-- Unified error handling
-- Consistent API response format
-- Real-time connection status monitoring
-
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Authentication
 
@@ -261,7 +263,7 @@ npm run dev
 - `GET /health` - Health check endpoint
 - `GET /api/Audit` - Audit log retrieval
 
-## 📚 Documentation
+## Documentation
 
 ### Available Documentation
 
@@ -278,24 +280,13 @@ npm run dev
 - **Backend README**: `backend/README.md`
 - **API Connection Guide**: `frontendWebsite/API-Connection-Documentation.md`
 
-## 🌍 Internationalization Status
-
-### Language Support
-
-- **Primary Language**: English (100% complete)
-- **Legacy Chinese Content**: Fully migrated to English
-- **Code Comments**: Fully translated to English
-- **Documentation**: Completely localized to English
-- **User Interface**: English-only interface
-
 ### Technical Implementation
 
-- All backend error messages in English
 - Frontend components with English labels
 - API documentation in English
 - Database initialization scripts in English
 
-## 🔒 Security Features
+## Security Features
 
 ### Authentication & Authorization
 
@@ -318,13 +309,13 @@ npm run dev
 - System activity monitoring
 - Error logging and reporting
 
-## 🤝 Development Team
+## Development Team
 
 - **Tian Yuan (Tim)**: Lead Developer + Scrum Master
 - **Zichun Zhang**: Developer
 - **Qiutong Li**: Developer
 
-## 📊 Project Metrics
+## Project Metrics
 
 - **Total Files**: 100+ source files
 - **Code Coverage**: Frontend & Backend fully functional
@@ -334,7 +325,7 @@ npm run dev
 
 ---
 
-**Project Status**: ✅ **Production Ready**
+**Project Status**: **Production Ready**
 
 _Developed for COMP9034 DevOps and Enterprise Systems Project_  
 _Last Updated\*\*: August 2025_

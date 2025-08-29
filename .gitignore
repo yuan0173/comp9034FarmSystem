@@ -93,3 +93,7 @@ backend/.vs/
 
 # AI Assistant Generated Documentation
 ai-docs/
+
+# Backend organized folders
+backend/logs/
+backend/scripts/*.backup
