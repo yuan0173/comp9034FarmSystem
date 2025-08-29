@@ -97,3 +97,11 @@ ai-docs/
 # Backend organized folders
 backend/logs/
 backend/scripts/*.backup
+
+# SQLite database files (runtime generated - should not be version controlled)
+*.db
+*.db-shm
+*.db-wal
+backend/farmtimems-dev.db
+backend/farmtimems-dev.db-shm
+backend/farmtimems-dev.db-wal

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { eventApi, staffApi } from '../api/client'
 import {
   Box,
   Card,
@@ -112,23 +114,23 @@ export function ManagerAttendance({
     },
   ]
 
-  // Use mock data directly (no API calls for demo)
-  const events = mockEvents
-  const staffs = mockStaffs
-  const eventsLoading = false
+  // Fetch real data from APIs
+  const { data: events = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['events', 'attendance', startDate, endDate],
+    queryFn: async () => {
+      if (!startDate || !endDate) return []
+      return eventApi.getAll({
+        from: startDate.toISOString(),
+        to: endDate.toISOString()
+      })
+    },
+    enabled: !!startDate && !!endDate
+  })
 
-  // Optional: Keep API calls disabled for demo
-  // const { data: events = [], isLoading: eventsLoading } = useQuery({
-  //   queryKey: ['events', 'attendance', startDate, endDate],
-  //   queryFn: async () => {
-  //     if (!startDate || !endDate) return []
-  //     return eventApi.getAll({
-  //       from: startDate.toISOString(),
-  //       to: endDate.toISOString()
-  //     })
-  //   },
-  //   enabled: false
-  // })
+  const { data: staffs = [] } = useQuery({
+    queryKey: ['staffs'],
+    queryFn: () => staffApi.getAll()
+  })
 
   // Calculate work hours data
   const workHoursData = useMemo(() => {
@@ -139,12 +141,10 @@ export function ManagerAttendance({
     // Enrich with staff details
     return calculatedHours
       .map(hours => {
-        const staff = staffs.find(s => s.staffId === hours.staffId)
+        const staff = staffs.find(s => s.id === hours.staffId)
         return {
           ...hours,
-          staffName: staff
-            ? `${staff.firstName} ${staff.lastName}`
-            : `Unknown (${hours.staffId})`,
+          staffName: staff?.name || `Unknown (${hours.staffId})`,
           email: staff?.email || '',
           role: staff?.role || '',
         }
