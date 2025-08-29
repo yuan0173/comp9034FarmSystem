@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { eventApi, staffApi } from '../api/client'
 import {
   Box,
   Card,
@@ -121,10 +123,23 @@ export function ManagerPayslips({
     },
   ]
 
-  // Use mock data directly (no API calls for demo)
-  const events = mockEvents
-  const staffs = mockStaffs
-  const eventsLoading = false
+  // Fetch real data from APIs
+  const { data: events = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['events', 'payroll', startDate, endDate],
+    queryFn: async () => {
+      if (!startDate || !endDate) return []
+      return eventApi.getAll({
+        from: startDate.toISOString(),
+        to: endDate.toISOString()
+      })
+    },
+    enabled: !!startDate && !!endDate
+  })
+
+  const { data: staffs = [] } = useQuery({
+    queryKey: ['staffs'],
+    queryFn: () => staffApi.getAll()
+  })
 
   // Calculate payroll data
   const payrollData = useMemo(() => {
@@ -134,15 +149,13 @@ export function ManagerPayslips({
 
     return workHoursData
       .map(hours => {
-        const staff = staffs.find(s => s.staffId === hours.staffId)
-        const payRate = staff?.standardPayRate || 25.0 // Default rate
+        const staff = staffs.find(s => s.id === hours.staffId)
+        const payRate = staff?.hourlyRate || 25.0 // Default rate
         const grossPay = hours.netHours * payRate
 
         return {
           ...hours,
-          staffName: staff
-            ? `${staff.firstName} ${staff.lastName}`
-            : `Unknown (${hours.staffId})`,
+          staffName: staff?.name || `Unknown (${hours.staffId})`,
           email: staff?.email || '',
           role: staff?.role || '',
           payRate,
