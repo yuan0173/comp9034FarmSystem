@@ -70,6 +70,12 @@ dotnet ef database update
 export ASPNETCORE_ENVIRONMENT=Development
 export ASPNETCORE_URLS="http://localhost:4000"
 
+# Load environment variables from .env file if exists
+if [ -f ".env" ]; then
+    echo "📋 Loading environment variables from .env file..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
 # Start server
 echo "🌟 Starting development server..."
 echo "📱 API Address: http://localhost:4000"

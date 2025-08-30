@@ -128,6 +128,20 @@ export const staffApi = {
 
   delete: async (id: number): Promise<void> => {
     await httpClient.delete(`/api/Staffs/${id}`)
+  },
+
+  // Get inactive (soft-deleted) staff
+  getInactive: async (query?: StaffQuery): Promise<Staff[]> => {
+    const params = new URLSearchParams()
+    if (query?.query) params.append('search', query.query)
+    
+    const response = await httpClient.get(`/api/Staffs/inactive?${params.toString()}`)
+    return response.data
+  },
+
+  // Restore a soft-deleted staff member
+  restore: async (id: number): Promise<void> => {
+    await httpClient.put(`/api/Staffs/${id}/restore`)
   }
 }
 
