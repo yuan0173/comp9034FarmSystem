@@ -74,8 +74,8 @@ export function Login({ onLogin }: LoginProps) {
         }
 
         // Store the JWT token for future API calls
-        if (loginResponse.token) {
-          localStorage.setItem('authToken', loginResponse.token)
+        if (loginResponse.Token) {
+          localStorage.setItem('authToken', loginResponse.Token)
         }
 
         onLogin(currentUser)

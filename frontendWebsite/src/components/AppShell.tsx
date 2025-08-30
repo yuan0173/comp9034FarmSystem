@@ -28,6 +28,7 @@ import {
   Computer,
   ExitToApp,
   CalendarMonth,
+  History,
 } from '@mui/icons-material'
 import { CurrentUser } from '../types/api'
 import { NetworkBadge } from './NetworkBadge'
@@ -98,6 +99,12 @@ const navigationItems: NavItem[] = [
     text: 'Event Management',
     icon: <Schedule />,
     path: '/admin/events',
+    roles: ['admin'],
+  },
+  {
+    text: 'Login History',
+    icon: <History />,
+    path: '/admin/login-history',
     roles: ['admin'],
   },
 ]

@@ -24,6 +24,7 @@ import { ManagerPayslips } from './pages/ManagerPayslips'
 import { AdminStaffs } from './pages/AdminStaffs'
 import { AdminDevices } from './pages/AdminDevices'
 import { AdminEvents } from './pages/AdminEvents'
+import { AdminLoginHistory } from './pages/AdminLoginHistory'
 // All admin pages are now imported above
 
 // Types
@@ -266,6 +267,16 @@ function App() {
                   element={
                     currentUser?.role === 'admin' ? (
                       <AdminEvents currentUser={currentUser} />
+                    ) : (
+                      <Navigate to="/login" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="admin/login-history"
+                  element={
+                    currentUser?.role === 'admin' ? (
+                      <AdminLoginHistory />
                     ) : (
                       <Navigate to="/login" replace />
                     )

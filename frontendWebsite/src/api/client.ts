@@ -102,6 +102,22 @@ export const eventApi = {
   }
 }
 
+// Login History API
+export const loginHistoryApi = {
+  getAll: async (query?: { limit?: number; offset?: number }): Promise<any[]> => {
+    const params = new URLSearchParams()
+    if (query?.limit) params.append('limit', query.limit.toString())
+    if (query?.offset) params.append('offset', query.offset.toString())
+    
+    const response = await httpClient.get(`/api/Auth/login-logs?${params.toString()}`)
+    return response.data
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await httpClient.delete(`/api/Auth/login-logs/${id}`)
+  }
+}
+
 // Staff API
 export const staffApi = {
   getAll: async (query?: StaffQuery): Promise<Staff[]> => {

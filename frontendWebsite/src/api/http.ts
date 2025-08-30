@@ -13,9 +13,7 @@ const getApiBaseUrl = () => {
   
   // 3. 智能端口检测：根据环境动态选择
   if (import.meta.env.DEV) {
-    // 开发环境：尝试常见的后端端口
-    const commonBackendPorts = [4000, 5000, 8000, 3001]
-    // 简化版：直接使用4000，实际项目中可以做端口探测
+    // 开发环境：直接使用4000端口
     return `${currentProtocol}//${currentHost}:4000`
   }
   
