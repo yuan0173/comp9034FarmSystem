@@ -1,13 +1,42 @@
 import axios from 'axios'
 
+// 🌟 行业标准：多层配置策略
+const getApiBaseUrl = () => {
+  // 1. 优先使用环境变量
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+  
+  // 2. 检测当前前端运行的协议和主机
+  const currentHost = window.location.hostname
+  const currentProtocol = window.location.protocol
+  
+  // 3. 智能端口检测：根据环境动态选择
+  if (import.meta.env.DEV) {
+    // 开发环境：尝试常见的后端端口
+    const commonBackendPorts = [4000, 5000, 8000, 3001]
+    // 简化版：直接使用4000，实际项目中可以做端口探测
+    return `${currentProtocol}//${currentHost}:4000`
+  }
+  
+  // 4. 生产环境：通常后端和前端在同一域名
+  return `${currentProtocol}//${currentHost}/api`
+}
+
 // Create axios instance with base configuration
 const httpClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// 🔧 开发模式下打印配置信息
+if (import.meta.env.DEV) {
+  console.log('🔗 API Base URL:', getApiBaseUrl())
+  console.log('🌍 Environment:', import.meta.env.MODE)
+}
 
 // Request interceptor for adding auth headers if needed
 httpClient.interceptors.request.use(

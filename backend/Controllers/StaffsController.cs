@@ -95,6 +95,133 @@ namespace COMP9034.Backend.Controllers
         }
 
         /// <summary>
+        /// Get inactive (soft-deleted) staff members
+        /// </summary>
+        [HttpGet("inactive")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<Staff>>> GetInactiveStaffs(
+            [FromQuery] int? limit = null,
+            [FromQuery] int offset = 0,
+            [FromQuery] string? search = null,
+            [FromQuery] string? role = null)
+        {
+            try
+            {
+                // Check if user is admin
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId() != "admin")
+                {
+                    return Forbid("Only administrators can view inactive staff");
+                }
+
+                IQueryable<Staff> query = _context.Staffs;
+
+                // Apply search filter
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(s => s.Name.Contains(search) || 
+                                           s.Email.Contains(search) ||
+                                           s.Id.ToString().Contains(search));
+                }
+
+                // Apply role filter
+                if (!string.IsNullOrEmpty(role) && role != "all")
+                {
+                    query = query.Where(s => s.Role == role);
+                }
+
+                // Only return INACTIVE staff
+                query = query.Where(s => !s.IsActive);
+
+                // Sort by ID
+                query = query.OrderBy(s => s.Id);
+
+                // Apply pagination
+                if (offset > 0)
+                {
+                    query = query.Skip(offset);
+                }
+
+                if (limit.HasValue)
+                {
+                    query = query.Take(limit.Value);
+                }
+
+                var inactiveStaffs = await query.ToListAsync();
+
+                // Set roles for each staff member
+                foreach (var staff in inactiveStaffs)
+                {
+                    staff.Role = staff.GetRoleFromId();
+                }
+
+                _logger.LogInformation($"Returning {inactiveStaffs.Count} inactive staff records");
+                return Ok(inactiveStaffs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting inactive staffs");
+                return StatusCode(500, new { message = "获取已删除员工失败", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Restore a soft-deleted staff member
+        /// </summary>
+        [HttpPut("{id}/restore")]
+        [Authorize]
+        public async Task<IActionResult> RestoreStaff(int id)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                // Check if user is admin
+                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId() != "admin")
+                {
+                    return Forbid("只有管理员可以恢复员工账户");
+                }
+
+                var staff = await _context.Staffs
+                    .FirstOrDefaultAsync(s => s.Id == id && !s.IsActive);
+
+                if (staff == null)
+                {
+                    return NotFound(new { message = "找不到已删除的员工记录" });
+                }
+
+                // Restore staff
+                staff.IsActive = true;
+                staff.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                // Log audit trail
+                var ipAddress = GetClientIpAddress();
+                await _auditService.LogAsync("Staffs", "RESTORE", staff.Id.ToString(),
+                    currentUserId.Value, ipAddress, $"Restored staff: {staff.Name}");
+
+                _logger.LogInformation($"Staff restored by user {currentUserId}: ID={id}, Name={staff.Name}");
+                return Ok(new { message = "员工账户已成功恢复" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error occurred while restoring staff ID:{id}");
+                return StatusCode(500, new { message = "恢复员工失败", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get specific staff by ID
         /// </summary>
         /// <param name="id">Staff ID</param>
@@ -161,6 +288,7 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Set default values
+                // 🎯 ID优先级：始终根据ID规则设置角色，确保数据一致性
                 staff.Role = staff.GetRoleFromId();
                 staff.CreatedAt = DateTime.UtcNow;
                 staff.UpdatedAt = DateTime.UtcNow;
@@ -248,6 +376,7 @@ namespace COMP9034.Backend.Controllers
         /// <param name="id">Staff ID</param>
         /// <returns>Delete result</returns>
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteStaff(int id)
         {
             try
@@ -258,18 +387,57 @@ namespace COMP9034.Backend.Controllers
                     return NotFound(new { message = $"Staff with ID {id} not found" });
                 }
 
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                // 🛡️ 关键安全检查
+                // 1. 防止用户删除自己
+                if (currentUserId.Value == id)
+                {
+                    return BadRequest(new { message = "您不能删除自己的账户" });
+                }
+
+                // 2. 防止删除最后一个管理员
+                var targetStaffRole = staff.GetRoleFromId();
+                if (targetStaffRole == "admin")
+                {
+                    var adminCount = await _context.Staffs
+                        .Where(s => s.IsActive && s.Id >= 9000)  // Admin ID range
+                        .CountAsync();
+                    
+                    if (adminCount <= 1)
+                    {
+                        return BadRequest(new { message = "不能删除最后一个系统管理员" });
+                    }
+                }
+
+                // 3. 权限检查：只有管理员可以删除其他员工
+                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId() != "admin")
+                {
+                    return Forbid("只有管理员可以删除员工账户");
+                }
+
                 // Soft delete
                 staff.IsActive = false;
                 staff.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Deleted staff: ID={id}");
-                return Ok(new { message = "Staff deleted successfully" });
+                // Log audit trail
+                var ipAddress = GetClientIpAddress();
+                await _auditService.LogAsync("Staffs", "DELETE", staff.Id.ToString(), 
+                    currentUserId.Value, ipAddress, $"Deleted staff: {staff.Name}");
+
+                _logger.LogInformation($"Staff deleted by user {currentUserId}: ID={id}, Name={staff.Name}");
+                return Ok(new { message = "员工已成功删除" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error occurred while deleting staff ID:{id}");
-                return StatusCode(500, new { message = "Failed to delete staff", error = ex.Message });
+                return StatusCode(500, new { message = "删除员工失败", error = ex.Message });
             }
         }
 
