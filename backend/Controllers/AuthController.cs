@@ -20,12 +20,14 @@ namespace COMP9034.Backend.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IJwtService _jwtService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IAuditService _auditService;
 
-        public AuthController(ApplicationDbContext context, IJwtService jwtService, ILogger<AuthController> logger)
+        public AuthController(ApplicationDbContext context, IJwtService jwtService, ILogger<AuthController> logger, IAuditService auditService)
         {
             _context = context;
             _jwtService = jwtService;
             _logger = logger;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -218,20 +220,21 @@ namespace COMP9034.Backend.Controllers
         /// <param name="offset">Offset for pagination</param>
         /// <returns>List of login logs</returns>
         [HttpGet("login-logs")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<IEnumerable<object>>> GetLoginLogs(
             [FromQuery] int limit = 50,
             [FromQuery] int offset = 0)
         {
             try
             {
-                // Check if user is admin
-                var role = User.FindFirst(TokenClaims.Role)?.Value;
-                if (role != "admin")
-                {
-                    return StatusCode(403, new { message = "Access denied. Admin privileges required." });
-                }
-
+                // Debug: Log user information
+                var userId = User.FindFirst(TokenClaims.StaffId)?.Value;
+                var userName = User.FindFirst(TokenClaims.Name)?.Value;
+                var userRole = User.FindFirst(TokenClaims.Role)?.Value;
+                var userClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
+                
+                _logger.LogInformation($"GetLoginLogs - User ID: {userId}, Name: {userName}, Role: {userRole}");
+                _logger.LogInformation($"GetLoginLogs - All claims: {string.Join(", ", userClaims)}");
                 var logs = await _context.LoginLogs
                     .Include(l => l.Staff)
                     .OrderByDescending(l => l.Timestamp)
@@ -256,6 +259,43 @@ namespace COMP9034.Backend.Controllers
             {
                 _logger.LogError(ex, "Error retrieving login logs");
                 return StatusCode(500, new { message = "Failed to retrieve login logs" });
+            }
+        }
+
+        /// <summary>
+        /// Delete a specific login log record
+        /// </summary>
+        /// <param name="id">Login log ID to delete</param>
+        /// <returns>Success message</returns>
+        [HttpDelete("login-logs/{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult> DeleteLoginLog(int id)
+        {
+            try
+            {
+                var loginLog = await _context.LoginLogs.FindAsync(id);
+                if (loginLog == null)
+                {
+                    return NotFound(new { message = "Login log not found" });
+                }
+
+                _context.LoginLogs.Remove(loginLog);
+                await _context.SaveChangesAsync();
+
+                // Log the deletion
+                var currentUserId = GetCurrentUserId();
+                var ipAddress = GetClientIpAddress();
+                await _auditService.LogAsync("LoginLogs", "DELETE", id.ToString(),
+                    currentUserId ?? 0, ipAddress, $"Deleted login log: {loginLog.Username}");
+
+                _logger.LogInformation($"Login log deleted by user {currentUserId}: ID={id}, Username={loginLog.Username}");
+
+                return Ok(new { message = "Login log deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting login log");
+                return StatusCode(500, new { message = "Failed to delete login log" });
             }
         }
 
@@ -308,6 +348,20 @@ namespace COMP9034.Backend.Controllers
         private bool VerifyPassword(string password, string hash)
         {
             return BCrypt.Net.BCrypt.Verify(password, hash);
+        }
+
+        /// <summary>
+        /// Get current user ID from JWT token
+        /// </summary>
+        /// <returns>Staff ID if authenticated, null otherwise</returns>
+        private int? GetCurrentUserId()
+        {
+            var staffIdClaim = User.FindFirst(TokenClaims.StaffId)?.Value;
+            if (int.TryParse(staffIdClaim, out int staffId))
+            {
+                return staffId;
+            }
+            return null;
         }
 
         #endregion

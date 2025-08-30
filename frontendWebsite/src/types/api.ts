@@ -99,6 +99,23 @@ export interface WorkHoursData {
   anomalies: string[]
 }
 
+// Login History interfaces
+export interface LoginHistory {
+  id: number
+  username: string
+  ipAddress: string
+  success: boolean
+  failureReason?: string
+  timestamp: string
+  staffId?: number
+  staffName?: string
+}
+
+export interface LoginHistoryQuery {
+  limit?: number
+  offset?: number
+}
+
 export interface PayslipData extends WorkHoursData {
   staffName: string
   grossPay: number

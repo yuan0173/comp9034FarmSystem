@@ -2,11 +2,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using COMP9034.Backend.Data;
 using COMP9034.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 清除JWT默认声明映射
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Add services to container
 builder.Services.AddControllers()
@@ -46,7 +50,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings["SecretKey"] ?? 
     Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
-    throw new InvalidOperationException("JWT SecretKey not configured. Set JWT_SECRET_KEY environment variable or add to appsettings.json");
+    "dev-only-key-change-in-production-32chars-min"; // 开发环境默认值
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -63,11 +67,12 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"] ?? "COMP9034-FarmTimeMS",
+        ValidIssuer = jwtSettings["Issuer"] ?? "COMP9034-FarmTimeMS-Dev",
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"] ?? "COMP9034-FarmTimeMS-Users",
+        ValidAudience = jwtSettings["Audience"] ?? "COMP9034-FarmTimeMS-Users-Dev",
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = "role"  // 使用自定义role claim
     };
 });
 
