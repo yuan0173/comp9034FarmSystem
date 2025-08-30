@@ -41,10 +41,29 @@ COMP9034-FarmTimeMS/
 
 ### Environment Overview
 
-| Environment     | Frontend URL            | Backend URL                                | Database                     | Purpose                     |
-| --------------- | ----------------------- | ------------------------------------------ | ---------------------------- | --------------------------- |
-| **Development** | `http://localhost:3000` | `http://localhost:4000`                    | SQLite (`farmtimems-dev.db`) | Local development & testing |
-| **Production**  | Cloud deployment        | `https://flindersdevops.azurewebsites.net` | Azure SQL Server             | Live deployment & usage     |
+| Environment     | Frontend URL             | Backend URL                                | Database                     | Purpose                     |
+| --------------- | ------------------------ | ------------------------------------------ | ---------------------------- | --------------------------- |
+| **Development** | `http://localhost:3000+` | `http://localhost:4000`                    | SQLite (`farmtimems-dev.db`) | Local development & testing |
+| **Production**  | Cloud deployment         | `https://flindersdevops.azurewebsites.net` | Azure SQL Server             | Live deployment & usage     |
+
+**🔧 智能端口管理策略：**
+
+- **后端固定端口**: `4000` (可配置)
+- **前端动态端口**: `3000, 3001, 5173...` (自动检测可用端口)
+- **端口冲突处理**: 自动递增查找可用端口
+- **CORS 动态配置**: 开发环境允许所有本地端口访问
+
+**🌐 环境变量配置：**
+
+```bash
+# 开发环境变量
+ASPNETCORE_ENVIRONMENT=Development  # 后端环境
+VITE_API_BASE_URL=http://localhost:4000  # 前端API配置 (可选)
+
+# 生产环境变量
+ASPNETCORE_ENVIRONMENT=Production
+AllowedOrigins__0=https://your-domain.com
+```
 
 ### Prerequisites
 
@@ -52,9 +71,57 @@ COMP9034-FarmTimeMS/
 - **.NET 8 SDK** (for backend development)
 - **SQLite** (embedded database for development)
 
-### Server Startupx
+### Development Server Setup
 
-#### Option 1: Start Both Servers Simultaneously
+#### 🔥 **推荐方案: 热重载开发环境 (Hot Reload)**
+
+**最佳开发体验，支持实时代码更新，无需手动重启：**
+
+```bash
+# Terminal 1: Backend Hot Reload (dotnet watch)
+cd backend
+ASPNETCORE_ENVIRONMENT=Development dotnet watch run --urls=http://localhost:4000
+
+# Terminal 2: Frontend Hot Module Replacement (Vite HMR)
+cd frontendWebsite
+npm install
+npm run dev
+```
+
+**热重载功能特性：**
+
+- ✅ **后端热重载**: 修改 `.cs` 文件自动重启服务器
+- ✅ **前端热更新**: 修改 React 组件毫秒级更新，保持页面状态
+- ✅ **自动 CORS 配置**: 开发环境动态允许所有本地端口
+- ✅ **实时错误反馈**: 编译错误和运行时错误立即显示
+- ✅ **智能端口管理**: 自动检测端口冲突并使用可用端口
+
+**热重载工作原理：**
+
+```bash
+# 后端 (dotnet watch)
+dotnet watch ⌚ File changed: StaffsController.cs
+dotnet watch 🔥 Hot reload of changes succeeded.
+# 或者需要重启时：
+dotnet watch 🔄 Restarting due to file change...
+dotnet watch 🚀 Started
+
+# 前端 (Vite HMR)
+[vite] connecting...
+[vite] connected.
+[vite] hmr update /src/pages/AdminStaffs.tsx
+```
+
+#### 📊 **开发效率对比**
+
+| 开发模式       | 修改后操作     | 等待时间 | 效率提升         |
+| -------------- | -------------- | -------- | ---------------- |
+| **传统模式**   | 手动重启前后端 | 10-30 秒 | 基准             |
+| **热重载模式** | 自动检测更新   | 1-3 秒   | **10 倍提升** ✨ |
+
+#### Option 2: 传统启动方式
+
+**同时启动双服务器：**
 
 ```bash
 # Terminal 1: Backend Server
@@ -68,7 +135,7 @@ npm install
 npm run dev
 ```
 
-#### Option 2: Individual Server Management
+**单独管理服务器：**
 
 **Backend Only:**
 
@@ -86,7 +153,7 @@ dotnet run --urls=http://localhost:4000
 cd frontendWebsite
 npm install
 npm run dev
-# Application: http://localhost:3000
+# Application: http://localhost:3000 (自动检测可用端口)
 ```
 
 ### Server Status Verification
@@ -95,6 +162,71 @@ npm run dev
 # Check if servers are running
 curl http://localhost:4000/health    # Backend health check
 curl http://localhost:3000           # Frontend accessibility
+
+# Check running processes
+lsof -ti:4000,3000,3001,5173        # List processes using these ports
+ps -p <PID>                          # Check specific process details
+```
+
+### 🛠️ **故障排除 & 最佳实践**
+
+#### 常见问题解决
+
+**1. 端口被占用错误：**
+
+```bash
+# 查找占用端口的进程
+lsof -ti:4000
+# 终止指定进程
+kill <PID>
+# 或者终止所有 dotnet 进程
+pkill -f "dotnet"
+```
+
+**2. CORS 错误：**
+
+```bash
+# 确保后端在开发环境运行
+ASPNETCORE_ENVIRONMENT=Development dotnet watch run --urls=http://localhost:4000
+# 检查控制台输出应显示: "🔧 CORS: 开发环境 - 允许所有本地来源"
+```
+
+**3. 热重载不工作：**
+
+```bash
+# 后端：确保使用 dotnet watch
+dotnet watch run --urls=http://localhost:4000
+
+# 前端：确保使用 npm run dev (不是 npm start)
+npm run dev
+```
+
+#### 🎯 **热重载最佳实践**
+
+**开发工作流程：**
+
+1. **一次启动**: 使用热重载启动双服务器
+2. **专注编码**: 修改代码后自动更新，无需手动操作
+3. **实时测试**: 立即查看更改效果
+4. **快速迭代**: 从修改到测试仅需 1-3 秒
+
+**支持的热重载操作：**
+
+- ✅ **后端**: 修改方法体、添加新 API、更新配置文件
+- ✅ **前端**: React 组件更新、样式修改、状态管理更改
+- ✅ **配置**: appsettings.json、环境变量更改
+- ❌ **需重启**: 依赖注入配置、数据库迁移
+
+**键盘快捷键：**
+
+```bash
+# 后端热重载
+Ctrl + R          # 手动重启后端
+Ctrl + C          # 停止服务器
+
+# 前端热重载
+Ctrl + R          # 浏览器刷新
+r + Enter         # Vite 手动重启
 ```
 
 ## Key Features
@@ -121,7 +253,9 @@ curl http://localhost:3000           # Frontend accessibility
 
 - **Frontend-Backend Alignment**: Unified data models and naming conventions
 - **Complete Internationalization**: Full English localization across all components
-- **Standardized Configuration**: Consistent port setup (Frontend:3000, Backend:4000)
+- **🔥 Hot Reload Development**: Backend `dotnet watch` + Frontend Vite HMR for 10x faster development
+- **🔧 Smart Port Management**: Dynamic port detection with automatic CORS configuration
+- **🌐 Environment-Aware Configuration**: Dynamic development/production environment handling
 - **Robust Error Handling**: Comprehensive global exception middleware
 - **API Documentation**: Complete Swagger documentation with interactive examples
 
@@ -300,7 +434,10 @@ curl http://localhost:3000           # Frontend accessibility
 - Secure password hashing (BCrypt)
 - Input validation and sanitization
 - SQL injection prevention (Entity Framework)
-- CORS configuration for secure cross-origin requests
+- 🔧 **Smart CORS Configuration**:
+  - Development: Dynamic localhost port allowance
+  - Production: Strict domain whitelist
+- 🛡️ **Self-Deletion Prevention**: Administrators cannot delete themselves or last admin
 
 ### Audit & Monitoring
 

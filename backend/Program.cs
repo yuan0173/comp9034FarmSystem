@@ -44,7 +44,9 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSettings["SecretKey"] ?? "your-super-secret-key-that-is-at-least-32-characters-long-for-security";
+var secretKey = jwtSettings["SecretKey"] ?? 
+    Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+    throw new InvalidOperationException("JWT SecretKey not configured. Set JWT_SECRET_KEY environment variable or add to appsettings.json");
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -54,7 +56,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Set to true in production
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment(); // Enable HTTPS in production
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -71,23 +73,45 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Configure CORS - Allow frontend access
+// 🌟 行业标准：动态CORS配置
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:3000",  // Development frontend (standard port)
-            "http://localhost:3001",  // Fallback port when 3000 is occupied
-            "https://localhost:3000",
-            "http://10.14.12.177:3000",
-            "http://192.168.64.1:3000",
-            "http://192.168.1.116:3000",
-            "http://169.254.99.235:3000"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            // 🔧 开发环境：动态允许localhost的任何端口
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrEmpty(origin)) return false;
+                
+                var uri = new Uri(origin);
+                return uri.Host == "localhost" || 
+                       uri.Host == "127.0.0.1" || 
+                       uri.Host.StartsWith("192.168.") ||  // 局域网
+                       uri.Host.StartsWith("10.") ||       // 内网
+                       uri.Host.StartsWith("172.");        // 内网
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+            
+            Console.WriteLine("🔧 CORS: 开发环境 - 允许所有本地来源");
+        }
+        else
+        {
+            // 🚀 生产环境：严格的域名白名单
+            var allowedOrigins = builder.Configuration
+                .GetSection("AllowedOrigins")
+                .Get<string[]>() ?? Array.Empty<string>();
+                
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+                  
+            Console.WriteLine($"🚀 CORS: 生产环境 - 允许域名: {string.Join(", ", allowedOrigins)}");
+        }
     });
 });
 

@@ -25,8 +25,11 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  Tabs,
+  Tab,
+  Tooltip,
 } from '@mui/material'
-import { People, Add, Search, Edit, Delete, Warning, FilterList, Sort } from '@mui/icons-material'
+import { People, Add, Search, Edit, Delete, Warning, FilterList, Sort, Restore, Archive } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { staffApi } from '../api/client'
 import { CurrentUser, Staff } from '../types/api'
@@ -35,12 +38,13 @@ interface AdminStaffsProps {
   currentUser: CurrentUser
 }
 
-export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
+export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [activeTab, setActiveTab] = useState(0) // 0: Active Staff, 1: Inactive Staff
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -58,12 +62,79 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
   
   const queryClient = useQueryClient()
 
-  // Fetch staff data from API
+  // 🚀 新增：根据Staff ID动态确定可选角色
+  const getAvailableRoles = (staffId: string) => {
+    const id = parseInt(staffId)
+    if (isNaN(id)) return ['staff', 'manager', 'admin'] // ID无效时显示所有选项
+    
+    if (id >= 9000) return ['admin']
+    if (id >= 8000 && id <= 8999) return ['manager']
+    return ['staff']
+  }
+
+  // 🚀 新增：获取角色的提示信息
+  const getRoleTooltip = (role: string, staffId: string) => {
+    const id = parseInt(staffId)
+    const availableRoles = getAvailableRoles(staffId)
+    
+    if (availableRoles.includes(role)) {
+      return `✓ 此角色可用于员工ID ${staffId}`
+    }
+    
+    if (id >= 9000) return `❌ ID ${staffId} (≥9000) 只能选择Admin角色`
+    if (id >= 8000) return `❌ ID ${staffId} (8000-8999) 只能选择Manager角色`
+    return `❌ ID ${staffId} (<8000) 只能选择Staff角色`
+  }
+
+  // 🛡️ 新增：检查是否可以删除某个员工
+  const canDeleteStaff = (staff: Staff) => {
+    // 1. 不能删除自己
+    if (staff.id === currentUser.staffId) {
+      return false
+    }
+    
+    // 2. 不能删除最后一个管理员
+    if (staff.role === 'admin') {
+      const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
+      if (adminCount <= 1) {
+        return false
+      }
+    }
+    
+    return true
+  }
+
+  // 🛡️ 新增：获取删除按钮的提示信息
+  const getDeleteTooltip = (staff: Staff) => {
+    if (staff.id === currentUser.staffId) {
+      return "不能删除自己的账户"
+    }
+    
+    if (staff.role === 'admin') {
+      const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
+      if (adminCount <= 1) {
+        return "不能删除最后一个系统管理员"
+      }
+    }
+    
+    return "删除此员工账户"
+  }
+
+  // Fetch active staff data from API
   const { data: staffs = [], isLoading } = useQuery({
     queryKey: ['staffs'],
     queryFn: () => staffApi.getAll(),
     retry: 1,
     refetchOnWindowFocus: false,
+  })
+
+  // Fetch inactive (soft-deleted) staff data from API
+  const { data: inactiveStaffs = [], isLoading: isLoadingInactive } = useQuery({
+    queryKey: ['inactiveStaffs'],
+    queryFn: () => staffApi.getInactive(),
+    retry: 1,
+    refetchOnWindowFocus: false,
+    enabled: activeTab === 1, // Only fetch when "Inactive Staff" tab is active
   })
 
   // Create staff mutation
@@ -99,11 +170,24 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
     mutationFn: (id: number) => staffApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffs'] })
+      queryClient.invalidateQueries({ queryKey: ['inactiveStaffs'] })
       setIsDeleteDialogOpen(false)
       setDeletingStaff(null)
     },
     onError: (error: any) => {
       console.error('Failed to delete staff:', error)
+    },
+  })
+
+  // Restore staff mutation
+  const restoreStaffMutation = useMutation({
+    mutationFn: (id: number) => staffApi.restore(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staffs'] })
+      queryClient.invalidateQueries({ queryKey: ['inactiveStaffs'] })
+    },
+    onError: (error: any) => {
+      console.error('Failed to restore staff:', error)
     },
   })
 
@@ -118,6 +202,18 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
       hourlyRate: '',
     })
     setFormErrors({})
+  }
+
+  // 🚀 新增：处理ID变化时的角色自动调整
+  const handleIdChange = (newId: string) => {
+    const availableRoles = getAvailableRoles(newId)
+    
+    setFormData(prev => ({
+      ...prev,
+      id: newId,
+      // 如果当前角色不在可选范围内，自动选择第一个可用角色
+      role: availableRoles.includes(prev.role) ? prev.role : availableRoles[0]
+    }))
   }
 
   const validateForm = (isEditing = false) => {
@@ -216,6 +312,30 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
     }
   }
 
+  const handleRestoreStaff = (staff: Staff) => {
+    if (staff.id) {
+      restoreStaffMutation.mutate(staff.id)
+    }
+  }
+
+  // Format deletion time for display
+  const formatDeletedAt = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      })
+    } catch (error) {
+      return dateString
+    }
+  }
+
   const clearFilters = () => {
     setSearchQuery('')
     setRoleFilter('all')
@@ -307,6 +427,35 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
         <Typography variant="subtitle1" color="textSecondary">
           Manage employee records and information
         </Typography>
+      </Paper>
+
+      {/* Tabs for Active/Inactive Staff */}
+      <Paper elevation={1} sx={{ mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          variant="fullWidth"
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 500,
+            }
+          }}
+        >
+          <Tab 
+            icon={<People />} 
+            label={`Active Staff (${staffs.length})`}
+            iconPosition="start"
+          />
+          <Tab 
+            icon={<Archive />} 
+            label={`Inactive Staff (${inactiveStaffs.length})`}
+            iconPosition="start"
+          />
+        </Tabs>
       </Paper>
 
       {/* Demo Mode Alert */}
@@ -437,7 +586,10 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              Staff Directory ({filteredStaffs.length} of {staffs.length} employees)
+              {activeTab === 0 
+                ? `Active Staff Directory (${filteredStaffs.length} of ${staffs.length} employees)`
+                : `Inactive Staff Directory (${inactiveStaffs.length} employees)`
+              }
             </Typography>
             
             {/* Active Filters Display */}
@@ -483,17 +635,20 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
             )}
           </Box>
 
-          {isLoading ? (
-            <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
-              Loading staff data...
-            </Typography>
-          ) : filteredStaffs.length === 0 ? (
-            <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
-              {searchQuery
-                ? 'No staff members match your search.'
-                : 'No staff members found.'}
-            </Typography>
-          ) : (
+          {/* Tab Panel Content */}
+          {activeTab === 0 ? (
+            // Active Staff Tab
+            isLoading ? (
+              <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
+                Loading staff data...
+              </Typography>
+            ) : filteredStaffs.length === 0 ? (
+              <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
+                {searchQuery
+                  ? 'No staff members match your search.'
+                  : 'No staff members found.'}
+              </Typography>
+            ) : (
             <TableContainer>
               <Table>
                 <TableHead>
@@ -556,6 +711,12 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
                             color="error"
                             startIcon={<Delete />}
                             onClick={() => handleDeleteStaff(staff)}
+                            disabled={!canDeleteStaff(staff)}
+                            title={getDeleteTooltip(staff)}
+                            sx={{
+                              opacity: canDeleteStaff(staff) ? 1 : 0.5,
+                              cursor: canDeleteStaff(staff) ? 'pointer' : 'not-allowed'
+                            }}
                           >
                             Delete
                           </Button>
@@ -566,6 +727,84 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
                 </TableBody>
               </Table>
             </TableContainer>
+            )
+          ) : (
+            // Inactive Staff Tab
+            isLoadingInactive ? (
+              <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
+                Loading inactive staff data...
+              </Typography>
+            ) : inactiveStaffs.length === 0 ? (
+              <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
+                No inactive staff found.
+              </Typography>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Staff ID</TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell>Contract Type</TableCell>
+                      <TableCell>Pay Rate</TableCell>
+                      <TableCell>Deleted At</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {inactiveStaffs.map(staff => (
+                      <TableRow key={staff.id} sx={{ backgroundColor: 'grey.50' }}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            {staff.id}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
+                            {staff.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{staff.email}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={staff.role || 'N/A'}
+                            size="small"
+                            variant="outlined"
+                            color="default"
+                          />
+                        </TableCell>
+                        <TableCell>Full-time</TableCell>
+                        <TableCell>
+                          ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDeletedAt(staff.updatedAt || '')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Restore this staff member">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="success"
+                              startIcon={restoreStaffMutation.isPending ? <CircularProgress size={16} /> : <Restore />}
+                              onClick={() => handleRestoreStaff(staff)}
+                              disabled={restoreStaffMutation.isPending}
+                              sx={{ minWidth: 'auto' }}
+                            >
+                              {restoreStaffMutation.isPending ? 'Restoring...' : 'Restore'}
+                            </Button>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )
           )}
         </CardContent>
       </Card>
@@ -642,9 +881,9 @@ export function AdminStaffs({ currentUser: _currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Staff ID"
                   value={formData.id}
-                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                  onChange={(e) => handleIdChange(e.target.value)}
                   error={!!formErrors.id}
-                  helperText={formErrors.id || 'e.g., 1001, 8001, 9001'}
+                  helperText={formErrors.id || 'ID范围决定角色: <8000=Staff, 8000-8999=Manager, ≥9000=Admin'}
                   placeholder="Enter staff ID number"
                 />
               </Grid>
