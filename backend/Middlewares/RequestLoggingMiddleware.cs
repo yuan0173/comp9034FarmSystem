@@ -19,12 +19,12 @@ namespace COMP9034.Backend.Middlewares
             var startTime = DateTime.UtcNow;
             var requestId = Guid.NewGuid().ToString("N")[..8];
             
-            // 添加请求ID到响应头
+            // Add request ID to response headers
             context.Response.Headers.Add("X-Request-ID", requestId);
             
-            // 记录请求信息
+            // Log request information
             _logger.LogInformation(
-                "[{RequestId}] {Method} {Path} - 开始处理请求",
+                "[{RequestId}] {Method} {Path} - Started processing request",
                 requestId,
                 context.Request.Method,
                 context.Request.Path

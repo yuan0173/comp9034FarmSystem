@@ -9,7 +9,7 @@ using COMP9034.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 清除JWT默认声明映射
+// Clear JWT default claim mapping
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Add services to container
@@ -50,7 +50,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings["SecretKey"] ?? 
     Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
-    "dev-only-key-change-in-production-32chars-min"; // 开发环境默认值
+    "dev-only-key-change-in-production-32chars-min"; // Development environment default
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -72,20 +72,20 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"] ?? "COMP9034-FarmTimeMS-Users-Dev",
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-        RoleClaimType = "role"  // 使用自定义role claim
+        RoleClaimType = "role"  // Use custom role claim
     };
 });
 
 builder.Services.AddAuthorization();
 
-// 🌟 行业标准：动态CORS配置
+// 🌟 Industry standard: Dynamic CORS configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            // 🔧 开发环境：动态允许localhost的任何端口
+            // 🔧 Development environment: Allow any localhost port dynamically
             policy.SetIsOriginAllowed(origin =>
             {
                 if (string.IsNullOrEmpty(origin)) return false;
@@ -93,19 +93,19 @@ builder.Services.AddCors(options =>
                 var uri = new Uri(origin);
                 return uri.Host == "localhost" || 
                        uri.Host == "127.0.0.1" || 
-                       uri.Host.StartsWith("192.168.") ||  // 局域网
-                       uri.Host.StartsWith("10.") ||       // 内网
-                       uri.Host.StartsWith("172.");        // 内网
+                       uri.Host.StartsWith("192.168.") ||  // LAN
+                       uri.Host.StartsWith("10.") ||       // Private network
+                       uri.Host.StartsWith("172.");        // Private network
             })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
             
-            Console.WriteLine("🔧 CORS: 开发环境 - 允许所有本地来源");
+            Console.WriteLine("🔧 CORS: Development environment - Allow all local sources");
         }
         else
         {
-            // 🚀 生产环境：严格的域名白名单
+            // 🚀 Production environment: Strict domain whitelist
             var allowedOrigins = builder.Configuration
                 .GetSection("AllowedOrigins")
                 .Get<string[]>() ?? Array.Empty<string>();
@@ -115,7 +115,7 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod()
                   .AllowCredentials();
                   
-            Console.WriteLine($"🚀 CORS: 生产环境 - 允许域名: {string.Join(", ", allowedOrigins)}");
+            Console.WriteLine($"🚀 CORS: Production environment - Allowed domains: {string.Join(", ", allowedOrigins)}");
         }
     });
 });
@@ -205,7 +205,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors("AllowFrontend");  // ✅ CORS必须在认证之前，路由之后
+app.UseCors("AllowFrontend");  // ✅ CORS must be before authentication, after routing
 app.UseAuthentication();
 app.UseAuthorization();
 

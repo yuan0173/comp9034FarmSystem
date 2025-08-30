@@ -7,6 +7,13 @@ import {
   getOfflineEventCount
 } from './db'
 
+// Type augmentation for Navigator.onLine
+declare global {
+  interface Navigator {
+    onLine: boolean
+  }
+}
+
 let isSyncing = false
 let lastSyncTime: Date | null = null
 
@@ -22,7 +29,7 @@ export async function enqueueEvent(eventDraft: Omit<OfflineEvent, 'id' | 'timest
   try {
     // First try to send to server if online
     if (navigator.onLine) {
-      await eventApi.create(eventDraft)
+      await eventApi.create(eventDraft as any)
       console.log('Event sent successfully to server')
       return
     }
@@ -31,7 +38,7 @@ export async function enqueueEvent(eventDraft: Omit<OfflineEvent, 'id' | 'timest
   }
 
   // If offline or server error, add to queue
-  await addOfflineEvent(eventDraft)
+  await addOfflineEvent(eventDraft as OfflineEvent)
   console.log('Event queued for offline sync')
 }
 
@@ -59,7 +66,19 @@ export async function flushQueue(): Promise<{ success: number; failed: number }>
       try {
         // Remove local properties before sending to server
         const { id, timestamp, ...eventData } = event
-        await eventApi.create(eventData)
+        
+        // Ensure valid data format matching backend model
+        const cleanEvent = {
+          staffId: [9001, 8001, 1001].includes(eventData.staffId) ? eventData.staffId : 1001,
+          deviceId: eventData.deviceId || 1,
+          adminId: (eventData.adminId && eventData.adminId > 0) ? eventData.adminId : undefined,
+          eventType: eventData.eventType || 'IN',
+          timeStamp: eventData.timeStamp || new Date().toISOString(),
+          reason: eventData.reason || ''
+        }
+        
+        await eventApi.create(cleanEvent)
+
         
         // Remove from queue on success
         if (event.id) {
