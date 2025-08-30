@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Clear Token</title>
+  </head>
+  <body>
+    <h1>Token Clearer</h1>
+    <button onclick="clearToken()">Clear Auth Token</button>
+    <div id="status"></div>
+
+    <script>
+      function clearToken() {
+        localStorage.removeItem('authToken')
+        document.getElementById('status').innerHTML =
+          'Token cleared! Please refresh the main app.'
+      }
+
+      // Show current token
+      const token = localStorage.getItem('authToken')
+      if (token) {
+        document.getElementById('status').innerHTML =
+          'Current token: ' + token.substring(0, 50) + '...'
+      } else {
+        document.getElementById('status').innerHTML = 'No token found.'
+      }
+    </script>
+  </body>
+</html>
