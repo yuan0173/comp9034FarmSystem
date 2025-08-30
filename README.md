@@ -46,21 +46,21 @@ COMP9034-FarmTimeMS/
 | **Development** | `http://localhost:3000+` | `http://localhost:4000`                    | SQLite (`farmtimems-dev.db`) | Local development & testing |
 | **Production**  | Cloud deployment         | `https://flindersdevops.azurewebsites.net` | Azure SQL Server             | Live deployment & usage     |
 
-**🔧 智能端口管理策略：**
+**🔧 Smart Port Management Strategy:**
 
-- **后端固定端口**: `4000` (可配置)
-- **前端动态端口**: `3000, 3001, 5173...` (自动检测可用端口)
-- **端口冲突处理**: 自动递增查找可用端口
-- **CORS 动态配置**: 开发环境允许所有本地端口访问
+- **Backend Fixed Port**: `4000` (configurable)
+- **Frontend Dynamic Port**: `3000, 3001, 5173...` (auto-detect available port)
+- **Port Conflict Handling**: Auto-increment to find available port
+- **Dynamic CORS Configuration**: Development environment allows all local ports
 
-**🌐 环境变量配置：**
+**🌐 Environment Variable Configuration:**
 
 ```bash
-# 开发环境变量
-ASPNETCORE_ENVIRONMENT=Development  # 后端环境
-VITE_API_BASE_URL=http://localhost:4000  # 前端API配置 (可选)
+# Development Environment Variables
+ASPNETCORE_ENVIRONMENT=Development  # Backend environment
+VITE_API_BASE_URL=http://localhost:4000  # Frontend API configuration (optional)
 
-# 生产环境变量
+# Production Environment Variables
 ASPNETCORE_ENVIRONMENT=Production
 AllowedOrigins__0=https://your-domain.com
 ```
@@ -73,9 +73,9 @@ AllowedOrigins__0=https://your-domain.com
 
 ### Development Server Setup
 
-#### 🔥 **推荐方案: 热重载开发环境 (Hot Reload)**
+#### 🔥 **Recommended Solution: Hot Reload Development Environment**
 
-**最佳开发体验，支持实时代码更新，无需手动重启：**
+**Best development experience with real-time code updates, no manual restart required:**
 
 ```bash
 # Terminal 1: Backend Hot Reload (dotnet watch)
@@ -88,40 +88,40 @@ npm install
 npm run dev
 ```
 
-**热重载功能特性：**
+**Hot Reload Feature Highlights:**
 
-- ✅ **后端热重载**: 修改 `.cs` 文件自动重启服务器
-- ✅ **前端热更新**: 修改 React 组件毫秒级更新，保持页面状态
-- ✅ **自动 CORS 配置**: 开发环境动态允许所有本地端口
-- ✅ **实时错误反馈**: 编译错误和运行时错误立即显示
-- ✅ **智能端口管理**: 自动检测端口冲突并使用可用端口
+- ✅ **Backend Hot Reload**: Automatically restart server when `.cs` files are modified
+- ✅ **Frontend Hot Update**: Update React components in milliseconds while preserving page state
+- ✅ **Automatic CORS Configuration**: Development environment dynamically allows all local ports
+- ✅ **Real-time Error Feedback**: Compile errors and runtime errors displayed immediately
+- ✅ **Smart Port Management**: Auto-detect port conflicts and use available ports
 
-**热重载工作原理：**
+**Hot Reload Working Principle:**
 
 ```bash
-# 后端 (dotnet watch)
+# Backend (dotnet watch)
 dotnet watch ⌚ File changed: StaffsController.cs
 dotnet watch 🔥 Hot reload of changes succeeded.
-# 或者需要重启时：
+# Or when restart is needed:
 dotnet watch 🔄 Restarting due to file change...
 dotnet watch 🚀 Started
 
-# 前端 (Vite HMR)
+# Frontend (Vite HMR)
 [vite] connecting...
 [vite] connected.
 [vite] hmr update /src/pages/AdminStaffs.tsx
 ```
 
-#### 📊 **开发效率对比**
+#### 📊 **Development Efficiency Comparison**
 
-| 开发模式       | 修改后操作     | 等待时间 | 效率提升         |
-| -------------- | -------------- | -------- | ---------------- |
-| **传统模式**   | 手动重启前后端 | 10-30 秒 | 基准             |
-| **热重载模式** | 自动检测更新   | 1-3 秒   | **10 倍提升** ✨ |
+| Development Mode    | Post-Modification Action | Wait Time | Efficiency Gain  |
+| ------------------- | ----------------------- | --------- | ---------------- |
+| **Traditional Mode** | Manual restart both ends| 10-30 sec | Baseline         |
+| **Hot Reload Mode**  | Auto-detect updates     | 1-3 sec   | **10x Faster** ✨ |
 
-#### Option 2: 传统启动方式
+#### Option 2: Traditional Startup Method
 
-**同时启动双服务器：**
+**Start both servers simultaneously:**
 
 ```bash
 # Terminal 1: Backend Server
@@ -135,7 +135,7 @@ npm install
 npm run dev
 ```
 
-**单独管理服务器：**
+**Manage servers separately:**
 
 **Backend Only:**
 
@@ -153,7 +153,7 @@ dotnet run --urls=http://localhost:4000
 cd frontendWebsite
 npm install
 npm run dev
-# Application: http://localhost:3000 (自动检测可用端口)
+# Application: http://localhost:3000 (auto-detect available port)
 ```
 
 ### Server Status Verification
@@ -168,65 +168,65 @@ lsof -ti:4000,3000,3001,5173        # List processes using these ports
 ps -p <PID>                          # Check specific process details
 ```
 
-### 🛠️ **故障排除 & 最佳实践**
+### 🛠️ **Troubleshooting & Best Practices**
 
-#### 常见问题解决
+#### Common Issue Resolution
 
-**1. 端口被占用错误：**
+**1. Port Occupied Error:**
 
 ```bash
-# 查找占用端口的进程
+# Find process occupying the port
 lsof -ti:4000
-# 终止指定进程
+# Terminate specific process
 kill <PID>
-# 或者终止所有 dotnet 进程
+# Or terminate all dotnet processes
 pkill -f "dotnet"
 ```
 
-**2. CORS 错误：**
+**2. CORS Error:**
 
 ```bash
-# 确保后端在开发环境运行
+# Ensure backend runs in development environment
 ASPNETCORE_ENVIRONMENT=Development dotnet watch run --urls=http://localhost:4000
-# 检查控制台输出应显示: "🔧 CORS: 开发环境 - 允许所有本地来源"
+# Check console output should show: "🔧 CORS: Development environment - Allow all local sources"
 ```
 
-**3. 热重载不工作：**
+**3. Hot Reload Not Working:**
 
 ```bash
-# 后端：确保使用 dotnet watch
+# Backend: Ensure using dotnet watch
 dotnet watch run --urls=http://localhost:4000
 
-# 前端：确保使用 npm run dev (不是 npm start)
+# Frontend: Ensure using npm run dev (not npm start)
 npm run dev
 ```
 
-#### 🎯 **热重载最佳实践**
+#### 🎯 **Hot Reload Best Practices**
 
-**开发工作流程：**
+**Development Workflow:**
 
-1. **一次启动**: 使用热重载启动双服务器
-2. **专注编码**: 修改代码后自动更新，无需手动操作
-3. **实时测试**: 立即查看更改效果
-4. **快速迭代**: 从修改到测试仅需 1-3 秒
+1. **One-Time Startup**: Use hot reload to start both servers
+2. **Focus on Coding**: Code changes auto-update without manual intervention
+3. **Real-time Testing**: See changes immediately
+4. **Rapid Iteration**: From modification to testing takes only 1-3 seconds
 
-**支持的热重载操作：**
+**Supported Hot Reload Operations:**
 
-- ✅ **后端**: 修改方法体、添加新 API、更新配置文件
-- ✅ **前端**: React 组件更新、样式修改、状态管理更改
-- ✅ **配置**: appsettings.json、环境变量更改
-- ❌ **需重启**: 依赖注入配置、数据库迁移
+- ✅ **Backend**: Modify method body, add new APIs, update configuration files
+- ✅ **Frontend**: React component updates, style modifications, state management changes
+- ✅ **Configuration**: appsettings.json, environment variable changes
+- ❌ **Requires Restart**: Dependency injection configuration, database migrations
 
-**键盘快捷键：**
+**Keyboard Shortcuts:**
 
 ```bash
-# 后端热重载
-Ctrl + R          # 手动重启后端
-Ctrl + C          # 停止服务器
+# Backend Hot Reload
+Ctrl + R          # Manual restart backend
+Ctrl + C          # Stop server
 
-# 前端热重载
-Ctrl + R          # 浏览器刷新
-r + Enter         # Vite 手动重启
+# Frontend Hot Reload
+Ctrl + R          # Browser refresh
+r + Enter         # Vite manual restart
 ```
 
 ## Key Features

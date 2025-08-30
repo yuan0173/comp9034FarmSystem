@@ -1,23 +1,23 @@
 import axios from 'axios'
 
-// 🌟 行业标准：多层配置策略
+// 🌟 Industry standard: Multi-layer configuration strategy
 const getApiBaseUrl = () => {
-  // 1. 优先使用环境变量
+  // 1. Prioritize environment variables
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL
   }
   
-  // 2. 检测当前前端运行的协议和主机
+  // 2. Detect current frontend protocol and host
   const currentHost = window.location.hostname
   const currentProtocol = window.location.protocol
   
-  // 3. 智能端口检测：根据环境动态选择
+  // 3. Smart port detection: Choose dynamically based on environment
   if (import.meta.env.DEV) {
-    // 开发环境：直接使用4000端口
+    // Development environment: Use port 4000 directly
     return `${currentProtocol}//${currentHost}:4000`
   }
   
-  // 4. 生产环境：通常后端和前端在同一域名
+  // 4. Production environment: Usually backend and frontend on same domain
   return `${currentProtocol}//${currentHost}/api`
 }
 
@@ -30,7 +30,7 @@ const httpClient = axios.create({
   },
 })
 
-// 🔧 开发模式下打印配置信息
+// 🔧 Print configuration info in development mode
 if (import.meta.env.DEV) {
   console.log('🔗 API Base URL:', getApiBaseUrl())
   console.log('🌍 Environment:', import.meta.env.MODE)
@@ -58,6 +58,7 @@ httpClient.interceptors.response.use(
   },
   error => {
     if (!navigator.onLine) {
+      
       console.warn('Network request failed - device is offline')
       return Promise.reject(new Error('Device is offline'))
     }

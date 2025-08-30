@@ -42,7 +42,7 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex(e => e.Username).IsUnique().HasFilter("[Username] IS NOT NULL");
             });
 
-            // Event 实体配置 (aligned with frontend)
+            // Event entity configuration (aligned with frontend)
             modelBuilder.Entity<Event>(entity =>
             {
                 entity.HasKey(e => e.EventId);
@@ -75,7 +75,7 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex(e => e.AdminId);
             });
 
-            // Device 实体配置
+            // Device entity configuration
             modelBuilder.Entity<Device>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -87,7 +87,7 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
-            // BiometricData 实体配置
+            // BiometricData entity configuration
             modelBuilder.Entity<BiometricData>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -159,7 +159,7 @@ namespace COMP9034.Backend.Data
                 }
             );
 
-            // 示例经理
+            // Sample manager
             modelBuilder.Entity<Staff>().HasData(
                 new Staff
                 {
@@ -177,7 +177,7 @@ namespace COMP9034.Backend.Data
                 }
             );
 
-            // 示例员工
+            // Sample worker
             modelBuilder.Entity<Staff>().HasData(
                 new Staff
                 {
@@ -195,7 +195,7 @@ namespace COMP9034.Backend.Data
                 }
             );
 
-            // 示例设备
+            // Sample devices
             modelBuilder.Entity<Device>().HasData(
                 new Device
                 {

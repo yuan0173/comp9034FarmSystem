@@ -6,9 +6,12 @@ export interface BiometricData {
 
 export interface Device {
   deviceId: number
+  id: number
+  name: string
   location: string
   type: string
   status: string
+  ipAddress?: string
 }
 
 export interface Event {
@@ -16,13 +19,14 @@ export interface Event {
   staffId: number
   timeStamp: string
   eventType: string
-  reason: string
+  reason?: string
   deviceId: number
-  adminId: number
+  adminId?: number
 }
 
 export interface Staff {
   id: number
+  staffId: number
   name: string
   email: string
   phone?: string
