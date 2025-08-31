@@ -415,6 +415,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               error={!!formErrors.name}
               helperText={formErrors.name}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
             
@@ -443,6 +444,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               error={!!formErrors.location}
               helperText={formErrors.location}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
 
@@ -451,6 +453,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               label="IP Address (Optional)"
               value={formData.ipAddress}
               onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
 
@@ -501,6 +504,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               error={!!formErrors.name}
               helperText={formErrors.name}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
             
@@ -529,6 +533,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               error={!!formErrors.location}
               helperText={formErrors.location}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
 
@@ -537,6 +542,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
               label="IP Address"
               value={formData.ipAddress}
               onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+              autoComplete="off"
               sx={{ mb: 2 }}
             />
 

@@ -74,8 +74,8 @@ export function Login({ onLogin }: LoginProps) {
         }
 
         // Store the JWT token for future API calls
-        if (loginResponse.Token) {
-          localStorage.setItem('authToken', loginResponse.Token)
+        if (loginResponse.token) {
+          localStorage.setItem('authToken', loginResponse.token)
         }
 
         onLogin(currentUser)
@@ -132,6 +132,7 @@ export function Login({ onLogin }: LoginProps) {
                   onChange={e => setStaffId(e.target.value)}
                   required
                   disabled={isLoading}
+                  autoComplete="username"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -152,6 +153,7 @@ export function Login({ onLogin }: LoginProps) {
                   onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
                   required
                   disabled={isLoading}
+                  autoComplete="current-password"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
