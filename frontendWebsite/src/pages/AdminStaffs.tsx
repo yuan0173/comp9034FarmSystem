@@ -880,22 +880,26 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <TextField
                   fullWidth
                   label="Staff ID"
+                  type="number"
                   value={formData.id}
                   onChange={(e) => handleIdChange(e.target.value)}
                   error={!!formErrors.id}
                   helperText={formErrors.id || 'ID范围决定角色: <8000=Staff, 8000-8999=Manager, ≥9000=Admin'}
                   placeholder="Enter staff ID number"
+                  autoComplete="off"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="PIN"
+                  type="password"
                   value={formData.pin}
                   onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
                   error={!!formErrors.pin}
                   helperText={formErrors.pin || 'At least 4 characters'}
                   placeholder="Enter staff PIN"
+                  autoComplete="new-password"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -907,6 +911,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   error={!!formErrors.name}
                   helperText={formErrors.name}
                   placeholder="Enter staff full name"
+                  autoComplete="name"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -919,6 +924,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   error={!!formErrors.email}
                   helperText={formErrors.email}
                   placeholder="Enter email address"
+                  autoComplete="email"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -929,9 +935,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     label="Role"
                   >
-                    <MenuItem value="staff">Staff (1000-7999)</MenuItem>
-                    <MenuItem value="manager">Manager (8000-8999)</MenuItem>
-                    <MenuItem value="admin">Admin (9000+)</MenuItem>
+                    {getAvailableRoles(formData.id).map(role => (
+                      <MenuItem key={role} value={role}>
+                        {role === 'staff' && 'Staff (1000-7999)'}
+                        {role === 'manager' && 'Manager (8000-8999)'}
+                        {role === 'admin' && 'Admin (9000+)'}
+                      </MenuItem>
+                    ))}
                   </Select>
                   {formErrors.role && (
                     <Typography variant="caption" color="error" sx={{ ml: 2 }}>
@@ -944,11 +954,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <TextField
                   fullWidth
                   label="Hourly Rate"
+                  type="number"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   error={!!formErrors.hourlyRate}
                   helperText={formErrors.hourlyRate}
                   placeholder="25.00"
+                  autoComplete="off"
                   InputProps={{
                     startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
                   }}
@@ -996,20 +1008,24 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <TextField
                   fullWidth
                   label="Staff ID"
+                  type="number"
                   value={formData.id}
                   disabled
                   helperText="Staff ID cannot be changed"
+                  autoComplete="off"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="PIN"
+                  type="password"
                   value={formData.pin}
                   onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
                   error={!!formErrors.pin}
                   helperText={formErrors.pin || 'At least 4 characters'}
                   placeholder="Enter staff PIN"
+                  autoComplete="new-password"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1021,6 +1037,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   error={!!formErrors.name}
                   helperText={formErrors.name}
                   placeholder="Enter staff full name"
+                  autoComplete="name"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1033,6 +1050,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   error={!!formErrors.email}
                   helperText={formErrors.email}
                   placeholder="Enter email address"
+                  autoComplete="email"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -1043,9 +1061,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     label="Role"
                   >
-                    <MenuItem value="staff">Staff (1000-7999)</MenuItem>
-                    <MenuItem value="manager">Manager (8000-8999)</MenuItem>
-                    <MenuItem value="admin">Admin (9000+)</MenuItem>
+                    {getAvailableRoles(formData.id).map(role => (
+                      <MenuItem key={role} value={role}>
+                        {role === 'staff' && 'Staff (1000-7999)'}
+                        {role === 'manager' && 'Manager (8000-8999)'}
+                        {role === 'admin' && 'Admin (9000+)'}
+                      </MenuItem>
+                    ))}
                   </Select>
                   {formErrors.role && (
                     <Typography variant="caption" color="error" sx={{ ml: 2 }}>
@@ -1058,11 +1080,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <TextField
                   fullWidth
                   label="Hourly Rate"
+                  type="number"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   error={!!formErrors.hourlyRate}
                   helperText={formErrors.hourlyRate}
                   placeholder="25.00"
+                  autoComplete="off"
                   InputProps={{
                     startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
                   }}
