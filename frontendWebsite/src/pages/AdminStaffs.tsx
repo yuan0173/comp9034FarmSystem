@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Card,
@@ -62,38 +62,26 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   
   const queryClient = useQueryClient()
 
-  // 🚀 新增：根据Staff ID动态确定可选角色
+  // Get available roles based on Staff ID
   const getAvailableRoles = (staffId: string) => {
     const id = parseInt(staffId)
-    if (isNaN(id)) return ['staff', 'manager', 'admin'] // ID无效时显示所有选项
+    if (isNaN(id)) return ['staff', 'manager', 'admin'] // Show all options when ID is invalid
     
     if (id >= 9000) return ['admin']
     if (id >= 8000 && id <= 8999) return ['manager']
     return ['staff']
   }
 
-  // 🚀 新增：获取角色的提示信息
-  const getRoleTooltip = (role: string, staffId: string) => {
-    const id = parseInt(staffId)
-    const availableRoles = getAvailableRoles(staffId)
-    
-    if (availableRoles.includes(role)) {
-      return `✓ 此角色可用于员工ID ${staffId}`
-    }
-    
-    if (id >= 9000) return `❌ ID ${staffId} (≥9000) 只能选择Admin角色`
-    if (id >= 8000) return `❌ ID ${staffId} (8000-8999) 只能选择Manager角色`
-    return `❌ ID ${staffId} (<8000) 只能选择Staff角色`
-  }
 
-  // 🛡️ 新增：检查是否可以删除某个员工
+
+  // Check if a staff member can be deleted
   const canDeleteStaff = (staff: Staff) => {
-    // 1. 不能删除自己
+    // 1. Cannot delete yourself
     if (staff.id === currentUser.staffId) {
       return false
     }
     
-    // 2. 不能删除最后一个管理员
+    // 2. Cannot delete the last administrator
     if (staff.role === 'admin') {
       const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
       if (adminCount <= 1) {
@@ -104,20 +92,20 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     return true
   }
 
-  // 🛡️ 新增：获取删除按钮的提示信息
+  // Get delete button tooltip information
   const getDeleteTooltip = (staff: Staff) => {
     if (staff.id === currentUser.staffId) {
-      return "不能删除自己的账户"
+      return "Cannot delete your own account"
     }
     
     if (staff.role === 'admin') {
       const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
       if (adminCount <= 1) {
-        return "不能删除最后一个系统管理员"
+        return "Cannot delete the last system administrator"
       }
     }
     
-    return "删除此员工账户"
+    return "Delete this staff account"
   }
 
   // Fetch active staff data from API
@@ -139,7 +127,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
 
   // Create staff mutation
   const createStaffMutation = useMutation({
-    mutationFn: (newStaff: Partial<Staff>) => staffApi.create(newStaff),
+    mutationFn: (newStaff: Omit<Staff, 'staffId'>) => staffApi.create(newStaff),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffs'] })
       setIsAddDialogOpen(false)
@@ -204,14 +192,14 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     setFormErrors({})
   }
 
-  // 🚀 新增：处理ID变化时的角色自动调整
+  // Handle automatic role adjustment when ID changes
   const handleIdChange = (newId: string) => {
     const availableRoles = getAvailableRoles(newId)
     
     setFormData(prev => ({
       ...prev,
       id: newId,
-      // 如果当前角色不在可选范围内，自动选择第一个可用角色
+      // If current role is not in available range, automatically select first available role
       role: availableRoles.includes(prev.role) ? prev.role : availableRoles[0]
     }))
   }
@@ -275,6 +263,11 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         role: formData.role,
         hourlyRate: parseFloat(formData.hourlyRate),
         isActive: true,
+        passwordHash: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        events: [],
+        biometricData: []
       }
       
       createStaffMutation.mutate(newStaff)
@@ -322,7 +315,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const formatDeletedAt = (dateString: string) => {
     try {
       const date = new Date(dateString)
-      return date.toLocaleString('zh-CN', {
+      return date.toLocaleString('en-US', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -359,10 +352,10 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       // Role filter
       const matchesRole = roleFilter === 'all' || staff.role === roleFilter
 
-                    // Status filter (keep the frontend filtering since backend only returns active staff)
-              const matchesStatus = statusFilter === 'all' || 
-                (statusFilter === 'active' && staff.isActive) ||
-                (statusFilter === 'inactive' && !staff.isActive)
+        // Status filter (keep the frontend filtering since backend only returns active staff)
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'active' && staff.isActive) ||
+        (statusFilter === 'inactive' && !staff.isActive)
 
       return matchesSearch && matchesRole && matchesStatus
     })
@@ -473,7 +466,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 label="Search Staff"
                 placeholder="Search by name, email, ID, or phone..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={(e: any) => setSearchQuery(e.target.value)}
                 InputProps={{
                   startAdornment: <Search sx={{ mr: 1, color: 'grey.500' }} />,
                 }}
@@ -487,7 +480,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <Select
                   value={roleFilter}
                   label="Role"
-                  onChange={e => setRoleFilter(e.target.value)}
+                  onChange={(e: any) => setRoleFilter(e.target.value)}
                   startAdornment={<FilterList sx={{ mr: 1, color: 'grey.500' }} />}
                 >
                   <MenuItem value="all">All Roles</MenuItem>
@@ -505,7 +498,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <Select
                   value={statusFilter}
                   label="Status"
-                  onChange={e => setStatusFilter(e.target.value)}
+                  onChange={(e: any) => setStatusFilter(e.target.value)}
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -521,7 +514,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <Select
                   value={sortBy}
                   label="Sort By"
-                  onChange={e => setSortBy(e.target.value)}
+                  onChange={(e: any) => setSortBy(e.target.value)}
                   startAdornment={<Sort sx={{ mr: 1, color: 'grey.500' }} />}
                 >
                   <MenuItem value="name">Name</MenuItem>
@@ -881,9 +874,9 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Staff ID"
                   value={formData.id}
-                  onChange={(e) => handleIdChange(e.target.value)}
+                  onChange={(e: any) => handleIdChange(e.target.value)}
                   error={!!formErrors.id}
-                  helperText={formErrors.id || 'ID范围决定角色: <8000=Staff, 8000-8999=Manager, ≥9000=Admin'}
+                  helperText={formErrors.id || 'ID range determines role: <8000=Staff, 8000-8999=Manager, ≥9000=Admin'}
                   placeholder="Enter staff ID number"
                 />
               </Grid>
@@ -892,7 +885,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="PIN"
                   value={formData.pin}
-                  onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, pin: e.target.value })}
                   error={!!formErrors.pin}
                   helperText={formErrors.pin || 'At least 4 characters'}
                   placeholder="Enter staff PIN"
@@ -903,7 +896,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Full Name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                   error={!!formErrors.name}
                   helperText={formErrors.name}
                   placeholder="Enter staff full name"
@@ -915,7 +908,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   label="Email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
                   error={!!formErrors.email}
                   helperText={formErrors.email}
                   placeholder="Enter email address"
@@ -926,7 +919,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
                     label="Role"
                   >
                     <MenuItem value="staff">Staff (1000-7999)</MenuItem>
@@ -945,7 +938,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Hourly Rate"
                   value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   error={!!formErrors.hourlyRate}
                   helperText={formErrors.hourlyRate}
                   placeholder="25.00"
@@ -1006,7 +999,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="PIN"
                   value={formData.pin}
-                  onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, pin: e.target.value })}
                   error={!!formErrors.pin}
                   helperText={formErrors.pin || 'At least 4 characters'}
                   placeholder="Enter staff PIN"
@@ -1017,7 +1010,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Full Name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                   error={!!formErrors.name}
                   helperText={formErrors.name}
                   placeholder="Enter staff full name"
@@ -1029,7 +1022,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   label="Email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
                   error={!!formErrors.email}
                   helperText={formErrors.email}
                   placeholder="Enter email address"
@@ -1040,7 +1033,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
                     label="Role"
                   >
                     <MenuItem value="staff">Staff (1000-7999)</MenuItem>
@@ -1059,7 +1052,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Hourly Rate"
                   value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   error={!!formErrors.hourlyRate}
                   helperText={formErrors.hourlyRate}
                   placeholder="25.00"
