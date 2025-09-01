@@ -204,9 +204,20 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     setFormErrors({})
   }
 
-  // 🚀 新增：处理ID变化时的角色自动调整
+  // 🚀 新增：处理ID变化时的角色自动调整和实时验证
   const handleIdChange = (newId: string) => {
     const availableRoles = getAvailableRoles(newId)
+    
+    // 实时验证ID重复
+    const errors: Record<string, string> = { ...formErrors }
+    if (newId && staffs.find(s => s.id?.toString() === newId)) {
+      errors.id = 'Staff ID already exists'
+    } else if (newId && !/^\d+$/.test(newId)) {
+      errors.id = 'Staff ID must be a number'
+    } else {
+      delete errors.id
+    }
+    setFormErrors(errors)
     
     setFormData(prev => ({
       ...prev,
