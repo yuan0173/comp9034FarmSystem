@@ -110,12 +110,18 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 var staff = await _context.Staffs
-                    .FirstOrDefaultAsync(s => s.Id == request.StaffId && s.IsActive);
+                    .FirstOrDefaultAsync(s => s.Id == request.StaffId);
 
                 if (staff == null)
                 {
                     await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, false, "Staff not found", null);
-                    return Unauthorized(new { message = "Invalid credentials" });
+                    return Unauthorized(new { message = "Staff ID not found" });
+                }
+
+                if (!staff.IsActive)
+                {
+                    await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, false, "Staff account disabled", request.StaffId);
+                    return Unauthorized(new { message = "Staff account has been disabled" });
                 }
 
                 if (staff.Pin != request.Pin)
