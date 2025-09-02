@@ -25,21 +25,11 @@ builder.Services.AddControllers()
 // Configure database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // Use SQLite for development, SQL Server for production
-    if (builder.Environment.IsDevelopment())
-    {
-        options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") 
-            ?? "Data Source=farmtimems-dev.db");
-    }
-    else
-    {
-        var connectionString = builder.Configuration.GetConnectionString("ProductionConnection");
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException("Production connection string not found");
-        }
-        options.UseSqlServer(connectionString);
-    }
+    // Use SQLite for all environments (development and production)
+    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+        ?? builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? "Data Source=./Data/farmtimems-dev.db";
+    options.UseSqlite(connectionString);
 });
 
 // Register services
