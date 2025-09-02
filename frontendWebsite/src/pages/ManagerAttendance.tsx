@@ -39,7 +39,7 @@ export function ManagerAttendance({
   const [endDate, setEndDate] = useState<Date | null>(new Date())
 
   // Mock data for demonstration
-  const mockEvents = [
+  /* const _mockEvents = [
     {
       eventId: 1,
       staffId: 1001,
@@ -85,9 +85,9 @@ export function ManagerAttendance({
       deviceId: 1,
       adminId: 0,
     },
-  ]
+  ] */
 
-  const mockStaffs = [
+  /* const _mockStaffs = [
     {
       staffId: 1001,
       firstName: 'John',
@@ -112,7 +112,7 @@ export function ManagerAttendance({
       role: 'Employee',
       standardPayRate: 24.75,
     },
-  ]
+  ] */
 
   // Fetch real data from APIs
   const { data: events = [], isLoading: eventsLoading } = useQuery({
