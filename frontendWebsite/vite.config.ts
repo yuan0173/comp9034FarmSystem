@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/COMP9034-City--Farming-Industry-Time-Management-System/',
   plugins: [
     react(),
     VitePWA({
