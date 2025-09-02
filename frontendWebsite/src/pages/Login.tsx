@@ -37,12 +37,6 @@ export function Login({ onLogin }: LoginProps) {
     return /^\d{4}$/.test(pin)
   }
 
-  const determineUserRole = (staffId: number): UserRole => {
-    // Simple role determination logic (in real app, this would come from backend)
-    if (staffId >= 9000) return 'admin'
-    if (staffId >= 8000) return 'manager'
-    return 'staff'
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
