@@ -72,19 +72,6 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     return ['staff']
   }
 
-  // 🚀 新增：获取角色的提示信息
-  const getRoleTooltip = (role: string, staffId: string) => {
-    const id = parseInt(staffId)
-    const availableRoles = getAvailableRoles(staffId)
-    
-    if (availableRoles.includes(role)) {
-      return `✓ 此角色可用于员工ID ${staffId}`
-    }
-    
-    if (id >= 9000) return `❌ ID ${staffId} (≥9000) 只能选择Admin角色`
-    if (id >= 8000) return `❌ ID ${staffId} (8000-8999) 只能选择Manager角色`
-    return `❌ ID ${staffId} (<8000) 只能选择Staff角色`
-  }
 
   // 🛡️ 新增：检查是否可以删除某个员工
   const canDeleteStaff = (staff: Staff) => {
@@ -139,7 +126,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
 
   // Create staff mutation
   const createStaffMutation = useMutation({
-    mutationFn: (newStaff: Partial<Staff>) => staffApi.create(newStaff),
+    mutationFn: (newStaff: any) => staffApi.create(newStaff),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffs'] })
       setIsAddDialogOpen(false)

@@ -31,7 +31,7 @@ import {
   Refresh,
   FilterList,
 } from '@mui/icons-material'
-import { CurrentUser, Event } from '../types/api'
+import { CurrentUser } from '../types/api'
 import { formatDateTime } from '../utils/time'
 
 interface AdminEventsProps {
@@ -43,7 +43,7 @@ export function AdminEvents({ currentUser: _currentUser }: AdminEventsProps) {
   const [eventTypeFilter, setEventTypeFilter] = useState('all')
 
   // Mock events data for demo
-  const mockEvents: Event[] = [
+  /* const _mockEvents: Event[] = [
     {
       eventId: 1,
       staffId: 1001,
@@ -116,7 +116,7 @@ export function AdminEvents({ currentUser: _currentUser }: AdminEventsProps) {
       deviceId: 2,
       adminId: 8001,
     },
-  ]
+  ] */
 
   // Mock staff names for display
   const staffNames: { [key: number]: string } = {
