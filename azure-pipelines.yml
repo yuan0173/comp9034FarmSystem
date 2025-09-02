@@ -1,0 +1,30 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+# Construct backend（.NET 8）
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.x'
+
+- script: |
+    cd backend
+    dotnet restore
+    dotnet build --no-restore
+    dotnet test --no-restore
+  displayName: 'Build and Test Backend (.NET 8)'
+
+# Construct frontend（React + Vite）
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.x'
+
+- script: |
+    cd frontendWebsite
+    npm install
+    npm run build
+  displayName: 'Build Frontend (React + Vite)'
