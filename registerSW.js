@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/comp9034FarmSystem/sw.js', { scope: '/comp9034FarmSystem/' })})}
