@@ -38,9 +38,9 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSettings["SecretKey"] ?? 
-    Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
-    "dev-only-key-change-in-production-32chars-min"; // Development environment default
+var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+    jwtSettings["SecretKey"] ?? 
+    "0634178ecb250a5766e4d873595b429f"; // 与Render环境变量一致
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>

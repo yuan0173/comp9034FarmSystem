@@ -23,7 +23,9 @@ namespace COMP9034.Backend.Services
         {
             _configuration = configuration;
             _logger = logger;
-            _secretKey = _configuration["Jwt:SecretKey"] ?? "your-super-secret-key-that-is-at-least-32-characters-long-for-security";
+            _secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+                _configuration["Jwt:SecretKey"] ?? 
+                "0634178ecb250a5766e4d873595b429f"; // 与Render环境变量一致
             _issuer = _configuration["Jwt:Issuer"] ?? "COMP9034-FarmTimeMS";
             _audience = _configuration["Jwt:Audience"] ?? "COMP9034-FarmTimeMS-Users";
             _tokenExpiryMinutes = int.Parse(_configuration["Jwt:TokenExpiryMinutes"] ?? "480"); // 8 hours default
