@@ -145,7 +145,7 @@ function App() {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <QueryClientProvider client={queryClient}>
-          <Router>
+          <Router basename="/comp9034FarmSystem">
             <Routes>
               {/* Login route */}
               <Route
