@@ -13,7 +13,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/flindersdevops\.azurewebsites\.net\/api\//,
+            urlPattern: /^https:\/\/comp9034farmsystem-backend\.onrender\.com\/api\//,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
