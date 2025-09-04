@@ -39,6 +39,11 @@ jobs:
         env:
           VITE_API_BASE_URL: https://comp9034farmsystem-backend.onrender.com
 
+      - name: Setup SPA routing for GitHub Pages
+        run: |
+          cp frontendWebsite/dist/index.html frontendWebsite/dist/404.html
+          touch frontendWebsite/dist/.nojekyll
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
