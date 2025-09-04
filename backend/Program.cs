@@ -41,6 +41,12 @@ var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
     jwtSettings["SecretKey"] ?? 
     "0634178ecb250a5766e4d873595b429f"; // 与Render环境变量一致
+var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? 
+    jwtSettings["Issuer"] ?? 
+    "COMP9034-FarmTimeMS";
+var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? 
+    jwtSettings["Audience"] ?? 
+    "COMP9034-FarmTimeMS-Users";
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -57,9 +63,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"] ?? "COMP9034-FarmTimeMS-Dev",
+        ValidIssuer = issuer,
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"] ?? "COMP9034-FarmTimeMS-Users-Dev",
+        ValidAudience = audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         RoleClaimType = "role"  // Use custom role claim
