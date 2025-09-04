@@ -1,0 +1,193 @@
+{
+  "sampleRequests": {
+    "authentication": {
+      "validPinLogin": {
+        "method": "POST",
+        "url": "/api/auth/pin-login",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "staffId": 9001,
+          "pin": "1234"
+        },
+        "description": "Valid PIN login for admin user"
+      },
+      "invalidPinLogin": {
+        "method": "POST", 
+        "url": "/api/auth/pin-login",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "staffId": 9001,
+          "pin": "0000"
+        },
+        "description": "Invalid PIN login attempt"
+      },
+      "malformedLogin": {
+        "method": "POST",
+        "url": "/api/auth/pin-login", 
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "staffId": "invalid",
+          "pin": ""
+        },
+        "description": "Malformed login request for validation testing"
+      }
+    },
+    "staffManagement": {
+      "getAllStaff": {
+        "method": "GET",
+        "url": "/api/staffs",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Retrieve all active staff members"
+      },
+      "getStaffById": {
+        "method": "GET", 
+        "url": "/api/staffs/9001",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Retrieve specific staff member by ID"
+      },
+      "getStaffByInvalidId": {
+        "method": "GET",
+        "url": "/api/staffs/99999",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        }, 
+        "description": "Test with non-existent staff ID"
+      }
+    },
+    "eventManagement": {
+      "createEvent": {
+        "method": "POST",
+        "url": "/api/events",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "staffId": 1001,
+          "deviceId": 1,
+          "eventType": "IN",
+          "notes": "Regular check-in"
+        },
+        "description": "Create new attendance event"
+      },
+      "createEventWithInvalidStaff": {
+        "method": "POST",
+        "url": "/api/events",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "staffId": 99999,
+          "deviceId": 1,
+          "eventType": "IN",
+          "notes": "Invalid staff test"
+        },
+        "description": "Test foreign key constraint with invalid staff ID"
+      },
+      "getAllEvents": {
+        "method": "GET",
+        "url": "/api/events",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Retrieve all attendance events"
+      },
+      "getEventsByStaff": {
+        "method": "GET",
+        "url": "/api/events/staff/1001", 
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Retrieve events for specific staff member"
+      }
+    },
+    "deviceManagement": {
+      "getAllDevices": {
+        "method": "GET",
+        "url": "/api/devices",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Retrieve all devices"
+      }
+    },
+    "adminFeatures": {
+      "getLoginLogs": {
+        "method": "GET", 
+        "url": "/api/auth/login-logs",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "queryParameters": {
+          "page": 1,
+          "pageSize": 10
+        },
+        "description": "Admin-only: Retrieve login history"
+      },
+      "getLoginLogsWithPaging": {
+        "method": "GET",
+        "url": "/api/auth/login-logs?page=2&pageSize=5",
+        "headers": {
+          "Authorization": "Bearer {{jwt_token}}"
+        },
+        "description": "Test pagination in login logs"
+      }
+    }
+  },
+  "testingWorkflows": {
+    "basicFlow": [
+      "1. Test health check endpoint",
+      "2. Perform PIN login to get JWT token",
+      "3. Use token to access protected endpoints", 
+      "4. Verify role-based access control",
+      "5. Test CRUD operations where available"
+    ],
+    "roleBasedFlow": [
+      "1. Login with different role accounts",
+      "2. Test accessible endpoints for each role",
+      "3. Verify restricted endpoints return 403",
+      "4. Confirm data filtering based on permissions"
+    ],
+    "dataIntegrityFlow": [
+      "1. Create test data via API",
+      "2. Retrieve data to verify creation",
+      "3. Attempt invalid operations",
+      "4. Verify error handling and data consistency"
+    ]
+  },
+  "validationRules": {
+    "staffId": {
+      "type": "integer", 
+      "range": "1000-9999",
+      "unique": true,
+      "required": true
+    },
+    "pin": {
+      "type": "string",
+      "length": "4 digits",
+      "unique": true,
+      "required": true
+    },
+    "eventType": {
+      "type": "string",
+      "allowedValues": ["IN", "OUT", "BREAK_START", "BREAK_END"],
+      "required": true
+    },
+    "deviceId": {
+      "type": "integer",
+      "references": "Devices.id",
+      "required": true
+    }
+  }
+}
