@@ -1,0 +1,310 @@
+{
+  "info": {
+    "name": "COMP9034 FarmTimeMS API Test Collection",
+    "description": "Complete API testing collection for Farm Time Management System\n\nVersion: 2.0.0 | Last Updated: 2025-09-04\nCompatible with API: v1.0.0\nBase URL: https://comp9034farmsystem-backend.onrender.com\n\nQuick Start:\n1. Set baseUrl variable in environment\n2. Run 'PIN Login - Admin' to get auth token\n3. Token auto-injected for subsequent requests\n4. Test all endpoints with proper authentication",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Auto-login script for API testing",
+          "if (!pm.globals.get('authToken') || !pm.globals.get('tokenExpiry') || new Date() > new Date(pm.globals.get('tokenExpiry'))) {",
+          "    console.log('Token expired or missing, performing auto-login...');",
+          "    ",
+          "    const loginRequest = {",
+          "        url: pm.globals.get('baseUrl') + '/api/auth/pin-login',",
+          "        method: 'POST',",
+          "        header: {",
+          "            'Content-Type': 'application/json'",
+          "        },",
+          "        body: {",
+          "            mode: 'raw',",
+          "            raw: JSON.stringify({",
+          "                staffId: parseInt(pm.globals.get('defaultStaffId') || '9001'),",
+          "                pin: pm.globals.get('defaultPin') || '1234'",
+          "            })",
+          "        }",
+          "    };",
+          "    ",
+          "    pm.sendRequest(loginRequest, function (err, response) {",
+          "        if (err) {",
+          "            console.log('Login failed:', err);",
+          "        } else if (response.code === 200) {",
+          "            const responseJson = response.json();",
+          "            pm.globals.set('authToken', responseJson.token);",
+          "            pm.globals.set('tokenExpiry', responseJson.expiresAt);",
+          "            console.log('Auto-login successful');",
+          "        } else {",
+          "            console.log('Login failed with status:', response.code);",
+          "        }",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://comp9034farmsystem-backend.onrender.com",
+      "type": "string"
+    },
+    {
+      "key": "defaultStaffId",
+      "value": "9001",
+      "type": "string"
+    },
+    {
+      "key": "defaultPin", 
+      "value": "1234",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "PIN Login - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": 9001,\n  \"pin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/pin-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "pin-login"]
+            }
+          }
+        },
+        {
+          "name": "PIN Login - Manager", 
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": 8001,\n  \"pin\": \"8001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/pin-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "pin-login"]
+            }
+          }
+        },
+        {
+          "name": "PIN Login - Staff",
+          "request": {
+            "method": "POST", 
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": 1001,\n  \"pin\": \"1001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/pin-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "pin-login"]
+            }
+          }
+        },
+        {
+          "name": "Get Login Logs (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login-logs?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login-logs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize", 
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff Management",
+      "item": [
+        {
+          "name": "Get All Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/staffs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffs"]
+            }
+          }
+        },
+        {
+          "name": "Get Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization", 
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/staffs/9001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffs", "9001"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Event Management",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": 1001,\n  \"deviceId\": 1,\n  \"eventType\": \"IN\",\n  \"notes\": \"Test clock-in event\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Get Events by Staff ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/staff/1001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "staff", "1001"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Device Management",
+      "item": [
+        {
+          "name": "Get All Devices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "devices"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

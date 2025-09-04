@@ -1,0 +1,47 @@
+# Testing Directory Security Protection
+
+# 🔒 Never commit sensitive information
+*.env
+*.secret
+*credentials*
+*password*
+*private*
+temp-tokens/
+logs/
+*.log
+
+# 🔒 Temporary testing files
+temp/
+cache/
+*.tmp
+test-outputs/
+debug/
+
+# 🔒 Personal testing data
+my-test-data/
+personal-notes/
+local-config/
+
+# 🔒 Runtime generated files
+*.pid
+*.sock
+node_modules/
+coverage/
+
+# ✅ Allow template and example files
+!*.example
+!*.template
+!sample-*
+!*-template.*
+
+# 🔒 IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 🔒 OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini

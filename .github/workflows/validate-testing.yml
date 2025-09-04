@@ -1,0 +1,110 @@
+name: Validate Testing Documentation
+
+on:
+  push:
+    paths:
+      - 'testing/**'
+  pull_request:
+    paths:
+      - 'testing/**'
+  workflow_dispatch:
+
+jobs:
+  validate-testing-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js for validation tools
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          npm install -g markdown-link-check
+
+      - name: Validate JSON files
+        run: |
+          echo "🔍 Validating JSON files in testing directory..."
+          find testing/ -name "*.json" -type f | while read file; do
+            echo "Checking: $file"
+            if ! jq . "$file" > /dev/null 2>&1; then
+              echo "❌ Invalid JSON: $file"
+              exit 1
+            else
+              echo "✅ Valid JSON: $file"
+            fi
+          done
+
+      - name: Check Markdown links
+        run: |
+          echo "🔗 Checking markdown links in testing documentation..."
+          find testing/ -name "*.md" -type f -exec markdown-link-check {} \; || true
+
+      - name: Run security validation script
+        run: |
+          echo "🔒 Running security validation..."
+          cd testing/scripts
+          chmod +x validate-security.sh
+          ./validate-security.sh
+
+      - name: Verify testing directory isolation
+        run: |
+          echo "🛡️ Verifying testing directory isolation..."
+          
+          # Check that testing directory is not in build paths
+          if [ -d "frontendWebsite" ]; then
+            if grep -r "testing/" frontendWebsite/src/ 2>/dev/null; then
+              echo "❌ Testing directory referenced in frontend source"
+              exit 1
+            fi
+          fi
+          
+          if [ -d "backend" ]; then
+            if grep -r "testing/" backend/ --exclude-dir=bin --exclude-dir=obj 2>/dev/null; then
+              echo "❌ Testing directory referenced in backend source"  
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Testing directory properly isolated"
+
+      - name: Validate test account structure
+        run: |
+          echo "👥 Validating test account configuration..."
+          
+          # Check that test accounts file has required structure
+          if ! jq -e '.testAccounts.administrator.staffId' testing/config/test-accounts.json > /dev/null; then
+            echo "❌ Missing administrator account in test-accounts.json"
+            exit 1
+          fi
+          
+          if ! jq -e '.testAccounts.manager.staffId' testing/config/test-accounts.json > /dev/null; then
+            echo "❌ Missing manager account in test-accounts.json"
+            exit 1
+          fi
+          
+          if ! jq -e '.testAccounts.staff.staffId' testing/config/test-accounts.json > /dev/null; then
+            echo "❌ Missing staff account in test-accounts.json"
+            exit 1
+          fi
+          
+          echo "✅ Test accounts properly configured"
+
+      - name: Generate validation report
+        run: |
+          echo "📊 Testing Package Validation Report"
+          echo "===================================="
+          echo "📅 Validation Date: $(date)"
+          echo "📋 Files Checked:"
+          find testing/ -type f | wc -l | xargs echo "   Total Files:"
+          find testing/ -name "*.json" | wc -l | xargs echo "   JSON Files:"
+          find testing/ -name "*.md" | wc -l | xargs echo "   Markdown Files:"
+          find testing/ -name "*.sh" | wc -l | xargs echo "   Script Files:"
+          echo ""
+          echo "✅ All validation checks passed"
+          echo "🎯 Testing package ready for distribution"

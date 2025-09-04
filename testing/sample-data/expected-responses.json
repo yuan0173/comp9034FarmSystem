@@ -1,0 +1,345 @@
+{
+  "expectedResponses": {
+    "healthCheck": {
+      "status": 200,
+      "responseBody": {
+        "status": "healthy",
+        "timestamp": "2025-09-04T02:00:00Z", 
+        "version": "1.0.0",
+        "environment": "Production"
+      },
+      "description": "Service health status"
+    },
+    "authentication": {
+      "successfulLogin": {
+        "status": 200,
+        "responseBody": {
+          "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdGFmZl9pZCI6IjkwMDEi...",
+          "refreshToken": "abc123def456ghi789...",
+          "expiresAt": "2025-09-04T10:00:00Z",
+          "staff": {
+            "id": 9001,
+            "name": "System Administrator",
+            "role": "admin",
+            "email": "admin@farmtimems.com"
+          }
+        },
+        "description": "Successful PIN authentication"
+      },
+      "failedLogin": {
+        "status": 401,
+        "responseBody": {
+          "error": "Invalid staff ID or PIN"
+        },
+        "description": "Failed authentication attempt"
+      },
+      "malformedLogin": {
+        "status": 400,
+        "responseBody": {
+          "errors": {
+            "StaffId": ["The StaffId field is required."],
+            "Pin": ["The Pin field is required."]
+          }
+        },
+        "description": "Validation errors for malformed request"
+      }
+    },
+    "staffManagement": {
+      "getAllStaff": {
+        "status": 200,
+        "responseBody": [
+          {
+            "id": 9001,
+            "name": "System Administrator", 
+            "role": "admin",
+            "email": "admin@farmtimems.com",
+            "hourlyRate": 50.00,
+            "isActive": true,
+            "createdAt": "2025-09-04T00:00:00Z"
+          },
+          {
+            "id": 8001,
+            "name": "Farm Manager",
+            "role": "manager", 
+            "email": "manager@farmtimems.com",
+            "hourlyRate": 35.00,
+            "isActive": true,
+            "createdAt": "2025-09-04T00:00:00Z"
+          },
+          {
+            "id": 1001,
+            "name": "Farm Worker",
+            "role": "staff",
+            "email": "worker@farmtimems.com", 
+            "hourlyRate": 25.00,
+            "isActive": true,
+            "createdAt": "2025-09-04T00:00:00Z"
+          }
+        ],
+        "description": "List of all active staff members"
+      },
+      "getStaffById": {
+        "status": 200,
+        "responseBody": {
+          "id": 9001,
+          "name": "System Administrator",
+          "role": "admin",
+          "email": "admin@farmtimems.com", 
+          "hourlyRate": 50.00,
+          "isActive": true,
+          "createdAt": "2025-09-04T00:00:00Z",
+          "updatedAt": "2025-09-04T00:00:00Z"
+        },
+        "description": "Specific staff member details"
+      },
+      "staffNotFound": {
+        "status": 404,
+        "responseBody": {
+          "error": "Staff not found"
+        },
+        "description": "Staff member does not exist"
+      }
+    },
+    "eventManagement": {
+      "createEvent": {
+        "status": 201,
+        "responseBody": {
+          "id": 15,
+          "staffId": 1001,
+          "deviceId": 1,
+          "eventType": "IN",
+          "timestamp": "2025-09-04T02:30:00Z",
+          "notes": "Regular check-in",
+          "createdAt": "2025-09-04T02:30:00Z",
+          "staff": {
+            "id": 1001,
+            "name": "Farm Worker"
+          },
+          "device": {
+            "id": 1,
+            "name": "Main Terminal",
+            "location": "Main Entrance"
+          }
+        },
+        "description": "Successfully created attendance event"
+      },
+      "getAllEvents": {
+        "status": 200,
+        "responseBody": [
+          {
+            "id": 1,
+            "staffId": 1001,
+            "deviceId": 1, 
+            "eventType": "IN",
+            "timestamp": "2025-09-04T01:00:00Z",
+            "notes": "Morning check-in",
+            "staff": {
+              "id": 1001,
+              "name": "Farm Worker"
+            },
+            "device": {
+              "id": 1,
+              "name": "Main Terminal"
+            }
+          }
+        ],
+        "description": "List of attendance events with related staff and device info"
+      },
+      "invalidEventCreation": {
+        "status": 400,
+        "responseBody": {
+          "error": "Invalid staff ID or device ID"
+        },
+        "description": "Foreign key constraint violation"
+      }
+    },
+    "deviceManagement": {
+      "getAllDevices": {
+        "status": 200,
+        "responseBody": [
+          {
+            "id": 1,
+            "name": "Main Terminal",
+            "type": "terminal",
+            "location": "Main Entrance", 
+            "status": "active",
+            "ipAddress": "192.168.1.100",
+            "isActive": true,
+            "createdAt": "2025-09-04T00:00:00Z"
+          },
+          {
+            "id": 2,
+            "name": "Biometric Scanner",
+            "type": "biometric",
+            "location": "Security Office",
+            "status": "active",
+            "ipAddress": "192.168.1.101", 
+            "isActive": true,
+            "createdAt": "2025-09-04T00:00:00Z"
+          }
+        ],
+        "description": "List of all registered devices"
+      }
+    },
+    "adminFeatures": {
+      "getLoginLogs": {
+        "status": 200,
+        "responseBody": [
+          {
+            "id": 1,
+            "username": "admin",
+            "ipAddress": "192.168.1.100",
+            "success": true,
+            "failureReason": null,
+            "timestamp": "2025-09-04T01:30:00Z",
+            "staffId": 9001,
+            "staffName": "System Administrator"
+          },
+          {
+            "id": 2, 
+            "username": "admin",
+            "ipAddress": "192.168.1.100",
+            "success": false,
+            "failureReason": "Invalid PIN",
+            "timestamp": "2025-09-04T01:25:00Z",
+            "staffId": 9001,
+            "staffName": "System Administrator"
+          }
+        ],
+        "description": "Login history with success/failure records"
+      },
+      "unauthorizedAccess": {
+        "status": 403,
+        "responseBody": {
+          "error": "Insufficient permissions"
+        },
+        "description": "Non-admin user attempting admin-only operation"
+      }
+    },
+    "errorResponses": {
+      "unauthorizedRequest": {
+        "status": 401,
+        "responseBody": {
+          "error": "Unauthorized access - token required"
+        },
+        "description": "Request without valid JWT token"
+      },
+      "expiredToken": {
+        "status": 401,
+        "responseBody": {
+          "error": "Token expired"
+        },
+        "description": "Request with expired JWT token"
+      },
+      "forbiddenAccess": {
+        "status": 403,
+        "responseBody": {
+          "error": "Forbidden - insufficient role permissions"  
+        },
+        "description": "User lacks required role for operation"
+      },
+      "notFound": {
+        "status": 404,
+        "responseBody": {
+          "error": "Resource not found"
+        },
+        "description": "Requested resource does not exist"
+      },
+      "serverError": {
+        "status": 500,
+        "responseBody": {
+          "error": "Internal server error"
+        },
+        "description": "Unexpected server-side error"
+      },
+      "serviceUnavailable": {
+        "status": 503,
+        "responseBody": {
+          "error": "Service temporarily unavailable"
+        },
+        "description": "Service is starting up or experiencing issues"
+      }
+    }
+  },
+  "testDataSets": {
+    "validTestUsers": [
+      {
+        "staffId": 9001,
+        "pin": "1234", 
+        "role": "admin",
+        "name": "System Administrator",
+        "expectedPermissions": ["all"]
+      },
+      {
+        "staffId": 8001,
+        "pin": "8001",
+        "role": "manager", 
+        "name": "Farm Manager",
+        "expectedPermissions": ["view_staff", "view_events", "export_data"]
+      },
+      {
+        "staffId": 1001,
+        "pin": "1001",
+        "role": "staff",
+        "name": "Farm Worker", 
+        "expectedPermissions": ["view_own_data", "clock_in_out"]
+      }
+    ],
+    "invalidTestData": [
+      {
+        "staffId": 0,
+        "pin": "0000",
+        "description": "Invalid staff ID (too low)"
+      },
+      {
+        "staffId": 99999, 
+        "pin": "9999",
+        "description": "Non-existent staff ID"
+      },
+      {
+        "staffId": 9001,
+        "pin": "",
+        "description": "Empty PIN"
+      },
+      {
+        "staffId": "invalid",
+        "pin": "1234",
+        "description": "Non-numeric staff ID"
+      }
+    ],
+    "testDevices": [
+      {
+        "id": 1,
+        "name": "Main Terminal",
+        "type": "terminal", 
+        "location": "Main Entrance",
+        "status": "active"
+      },
+      {
+        "id": 2,
+        "name": "Biometric Scanner",
+        "type": "biometric",
+        "location": "Security Office", 
+        "status": "active"
+      }
+    ],
+    "eventTypes": [
+      {
+        "type": "IN",
+        "description": "Clock in - start work"
+      },
+      {
+        "type": "OUT", 
+        "description": "Clock out - end work"
+      },
+      {
+        "type": "BREAK_START",
+        "description": "Start break period"
+      },
+      {
+        "type": "BREAK_END",
+        "description": "End break period"  
+      }
+    ]
+  }
+}
