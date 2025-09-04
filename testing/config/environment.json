@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "version": "2.0.0",
+    "lastUpdated": "2025-09-04",
+    "compatibleWithAPI": "v1.0.0",
+    "maintainer": "COMP9034 Development Team",
+    "description": "Testing environment configuration for Farm Time Management System"
+  },
+  "environments": {
+    "production": {
+      "name": "Production Testing Environment",
+      "frontend": {
+        "url": "https://yuan0173.github.io/comp9034FarmSystem/",
+        "baseRoute": "/comp9034FarmSystem"
+      },
+      "backend": {
+        "baseUrl": "https://comp9034farmsystem-backend.onrender.com",
+        "healthCheck": "https://comp9034farmsystem-backend.onrender.com/health",
+        "apiPrefix": "/api"
+      }
+    }
+  },
+  "testConfiguration": {
+    "timeouts": {
+      "coldStartTimeout": 60000,
+      "normalRequestTimeout": 10000,
+      "authenticationTimeout": 5000
+    },
+    "retryPolicy": {
+      "maxRetries": 3,
+      "retryDelay": 2000
+    },
+    "performance": {
+      "expectedResponseTime": 2000,
+      "coldStartThreshold": 60000,
+      "maxConcurrentUsers": 5,
+      "performanceNotes": {
+        "coldStart": "Service sleeps after 15 minutes inactivity - first request takes 30-60s",
+        "concurrentSessions": "Recommended max 5 concurrent testing sessions",
+        "accountSharing": "Coordinate shared test account usage to avoid conflicts",
+        "networkLatency": "Add 200-500ms for international access"
+      },
+      "benchmarks": {
+        "healthCheck": "< 1 second",
+        "authentication": "< 3 seconds", 
+        "dataRetrieval": "< 2 seconds",
+        "dataCreation": "< 3 seconds"
+      }
+    }
+  },
+  "testData": {
+    "validStaffIds": [9001, 8001, 1001],
+    "invalidStaffIds": [0, 9999, 1111],
+    "validDeviceIds": [1, 2],
+    "invalidDeviceIds": [0, 999],
+    "eventTypes": ["IN", "OUT", "BREAK_START", "BREAK_END"],
+    "roles": ["admin", "manager", "staff"]
+  },
+  "serviceInformation": {
+    "platform": "Render (Free Tier)",
+    "sleepTimer": "15 minutes of inactivity",
+    "wakeUpTime": "30-60 seconds",
+    "dataStorage": "Persistent SQLite (planned: SQL Server)",
+    "timezone": "UTC",
+    "cors": {
+      "allowedOrigins": [
+        "https://yuan0173.github.io",
+        "https://flindersdevops.azurewebsites.net"
+      ]
+    }
+  },
+  "monitoring": {
+    "healthCheckUrl": "/health",
+    "expectedHealthResponse": {
+      "status": "healthy",
+      "timestamp": "ISO 8601 format",
+      "version": "1.0.0",
+      "environment": "Production"
+    }
+  }
+}

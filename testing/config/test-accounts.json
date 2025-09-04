@@ -1,0 +1,95 @@
+{
+  "testAccounts": {
+    "administrator": {
+      "staffId": 9001,
+      "pin": "1234",
+      "role": "admin",
+      "email": "admin@farmtimems.com",
+      "name": "System Administrator",
+      "hourlyRate": 50.00,
+      "permissions": {
+        "canViewAllStaff": true,
+        "canManageStaff": true,
+        "canViewAllEvents": true,
+        "canManageDevices": true,
+        "canViewLoginLogs": true,
+        "canViewAuditLogs": true,
+        "canExportData": true
+      },
+      "testScenarios": [
+        "Full system administration",
+        "User management operations", 
+        "System monitoring and logs",
+        "Data export and reporting",
+        "Security audit trails"
+      ]
+    },
+    "manager": {
+      "staffId": 8001,
+      "pin": "8001", 
+      "role": "manager",
+      "email": "manager@farmtimems.com",
+      "name": "Farm Manager",
+      "hourlyRate": 35.00,
+      "permissions": {
+        "canViewAllStaff": true,
+        "canManageStaff": false,
+        "canViewAllEvents": true,
+        "canManageDevices": false,
+        "canViewLoginLogs": false,
+        "canViewAuditLogs": false,
+        "canExportData": true
+      },
+      "testScenarios": [
+        "Staff attendance monitoring",
+        "Payslip generation and review",
+        "Attendance report generation",
+        "Team performance analysis",
+        "Limited administrative tasks"
+      ]
+    },
+    "staff": {
+      "staffId": 1001,
+      "pin": "1001",
+      "role": "staff", 
+      "email": "worker@farmtimems.com",
+      "name": "Farm Worker",
+      "hourlyRate": 25.00,
+      "permissions": {
+        "canViewAllStaff": false,
+        "canManageStaff": false,
+        "canViewAllEvents": false,
+        "canManageDevices": false,
+        "canViewLoginLogs": false,
+        "canViewAuditLogs": false,
+        "canExportData": false,
+        "canViewOwnData": true,
+        "canClockInOut": true
+      },
+      "testScenarios": [
+        "Personal clock in/out operations",
+        "View personal attendance history",
+        "Access personal dashboard only",
+        "Verify restricted access to admin features"
+      ]
+    }
+  },
+  "securityNotes": {
+    "dataClassification": "Test Data - Non-Production Sensitive",
+    "usageRestrictions": "Testing environment only",
+    "credentialRotation": "Quarterly PIN rotation recommended",
+    "accessLogging": "All login attempts are logged",
+    "sharedUsage": "Coordinate usage to avoid conflicts"
+  },
+  "testingGuidelines": {
+    "concurrentSessions": "Avoid multiple simultaneous logins with same account",
+    "dataModification": "Test data changes are persistent across sessions",
+    "accountLocking": "No automatic account locking implemented",
+    "sessionManagement": "JWT tokens expire after 8 hours"
+  },
+  "emergencyAccess": {
+    "note": "If test accounts become inaccessible, contact development team",
+    "backupProcedure": "Development team can reset account status via direct database access",
+    "escalation": "For urgent testing needs, alternative test accounts can be created"
+  }
+}
