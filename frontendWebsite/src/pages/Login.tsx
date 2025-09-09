@@ -21,8 +21,8 @@ interface LoginProps {
 }
 
 export function Login({ onLogin }: LoginProps) {
-  const [staffId, setStaffId] = useState('')
-  const [pin, setPin] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
@@ -30,11 +30,11 @@ export function Login({ onLogin }: LoginProps) {
   // Clear error when inputs change
   useEffect(() => {
     if (error) setError('')
-  }, [staffId, pin])
+  }, [email, password])
 
-  const validatePin = (pin: string): boolean => {
-    // Simple PIN validation: must be exactly 4 digits
-    return /^\d{4}$/.test(pin)
+  const validateEmail = (email: string): boolean => {
+    // Simple email validation
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   }
 
 
@@ -44,27 +44,26 @@ export function Login({ onLogin }: LoginProps) {
     setIsLoading(true)
 
     try {
-      const staffIdNum = parseInt(staffId)
-      if (isNaN(staffIdNum) || staffIdNum <= 0) {
-        setError('Please enter a valid Staff ID')
+      if (!validateEmail(email)) {
+        setError('Please enter a valid email address')
         return
       }
 
-      if (!validatePin(pin)) {
-        setError('PIN must be exactly 4 digits')
+      if (!password || password.length === 0) {
+        setError('Please enter your password')
         return
       }
 
       // Use the proper authentication API
-      const loginResponse = await authApi.loginWithPin(staffIdNum, pin)
+      const loginResponse = await authApi.login(email, password)
       
       if (loginResponse && loginResponse.staff) {
         const currentUser: CurrentUser = {
           staffId: loginResponse.staff.id,
           firstName: loginResponse.staff.name.split(' ')[0] || '',
           lastName: loginResponse.staff.name.split(' ').slice(1).join(' ') || '',
-          role: loginResponse.staff.role as UserRole,
-          pin: pin,
+          role: loginResponse.staff.role.toLowerCase() as UserRole,
+          pin: '', // PIN no longer used
         }
 
         // Store the JWT token for future API calls
@@ -92,7 +91,7 @@ export function Login({ onLogin }: LoginProps) {
       }
     } catch (error) {
       console.error('Login error:', error)
-      setError('Login failed. Please try again.')
+      setError('Invalid email or password. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -119,14 +118,14 @@ export function Login({ onLogin }: LoginProps) {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <TextField
                   fullWidth
-                  label="Staff ID"
+                  label="Email Address"
                   variant="outlined"
-                  type="number"
-                  value={staffId}
-                  onChange={e => setStaffId(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  autoComplete="username"
+                  autoComplete="email"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -134,17 +133,16 @@ export function Login({ onLogin }: LoginProps) {
                       </InputAdornment>
                     ),
                   }}
-                  helperText="Enter your employee ID number"
+                  helperText="Enter your email address"
                 />
 
                 <TextField
                   fullWidth
-                  label="PIN"
+                  label="Password"
                   variant="outlined"
                   type="password"
-                  inputProps={{ maxLength: 4, pattern: '[0-9]{4}' }}
-                  value={pin}
-                  onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
                   autoComplete="current-password"
@@ -155,7 +153,7 @@ export function Login({ onLogin }: LoginProps) {
                       </InputAdornment>
                     ),
                   }}
-                  helperText="Enter your 4-digit PIN"
+                  helperText="Enter your password"
                 />
 
                 {error && (

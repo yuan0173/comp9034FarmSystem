@@ -1,0 +1,34 @@
+Id,Username,IpAddress,UserAgent,Success,FailureReason,Timestamp,StaffId
+1,admin,::1,curl/8.7.1,1,NULL,"2025-08-28 06:37:57.425457",9001
+2,worker,::1,curl/8.7.1,1,NULL,"2025-08-28 06:38:08.606992",1001
+3,1001,::1,curl/8.7.1,1,NULL,"2025-08-28 06:40:08.534305",1001
+4,admin,::1,curl/8.7.1,1,NULL,"2025-08-28 06:40:55.708667",9001
+5,admin,::1,curl/8.7.1,1,NULL,"2025-08-28 06:41:12.13803",9001
+6,admin,::1,curl/8.7.1,1,NULL,"2025-08-28 06:43:17.583101",9001
+7,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 10:09:11.624078",9001
+8,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 10:21:49.834343",9001
+9,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 10:28:01.589693",9001
+10,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 10:42:49.581717",9001
+11,admin,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 10:43:13.212549",9001
+12,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 11:10:25.118217",9001
+13,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 11:25:33.849821",9001
+14,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 11:43:45.127333",9001
+15,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 11:43:53.393678",9001
+16,8001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 11:44:18.186099",8001
+17,1001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 11:44:49.219166",1001
+18,2001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 11:45:23.131746",2001
+19,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:09:35.320407",9001
+20,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:09:39.035736",9001
+21,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:09:39.838021",9001
+22,1001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 12:09:51.947882",1001
+23,8001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 12:10:02.428529",8001
+24,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:10:14.982828",9001
+25,9001,127.0.0.1,curl/8.7.1,1,NULL,"2025-08-28 12:21:44.975122",9001
+26,8001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 12:24:50.352201",8001
+27,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:24:56.444265",9001
+28,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:24:57.620285",9001
+29,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:24:58.222486",9001
+30,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:24:58.45003",9001
+31,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:24:58.651966",9001
+32,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",0,"Invalid PIN","2025-08-28 12:25:06.860377",9001
+33,9001,127.0.0.1,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",1,NULL,"2025-08-28 12:25:12.768568",9001

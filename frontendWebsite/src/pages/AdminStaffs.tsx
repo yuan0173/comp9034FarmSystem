@@ -28,11 +28,14 @@ import {
   Tabs,
   Tab,
   Tooltip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 import { People, Add, Search, Edit, Delete, Warning, FilterList, Sort, Restore, Archive } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { staffApi } from '../api/client'
-import { CurrentUser, Staff } from '../types/api'
+import { CurrentUser, Staff, StaffCreateRequest } from '../types/api'
+import { formatDateTimeString } from '../utils/time'
 
 interface AdminStaffsProps {
   currentUser: CurrentUser
@@ -51,26 +54,160 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
   const [deletingStaff, setDeletingStaff] = useState<Staff | null>(null)
   const [formData, setFormData] = useState({
-    id: '',
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    pin: '',
-    role: '',
-    hourlyRate: '',
+    role: 'Staff',
+    phone: '',
+    address: '',
+    contractType: 'Casual',
+    standardPayRate: '',
+    overtimePayRate: '',
+    standardHoursPerWeek: '40',
+    isActive: true,
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   
+  // TypeScript state variables matching your provided code
+  const [emailTimer, setEmailTimer] = useState<NodeJS.Timeout | null>(null)
+  const [autoOvertimeEnabled, setAutoOvertimeEnabled] = useState(true)
+  const [userTouchedStandardPay, setUserTouchedStandardPay] = useState(false)
+  const [userTouchedOvertimePay, setUserTouchedOvertimePay] = useState(false)
+  const [addAnother, setAddAnother] = useState(false)
+  
   const queryClient = useQueryClient()
 
-  // 🚀 新增：根据Staff ID动态确定可选角色
-  const getAvailableRoles = (staffId: string) => {
-    const id = parseInt(staffId)
-    if (isNaN(id)) return ['staff', 'manager', 'admin'] // ID无效时显示所有选项
+
+  // Configuration matching your TypeScript code exactly
+  const BASE_URL = 'http://localhost:4000'
+  const TOKEN_KEY = 'authToken'
+  const token = localStorage.getItem(TOKEN_KEY)
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+
+  // API functions exactly matching your TypeScript code
+  async function searchStaffs(keyword: string, includeInactive: boolean = true): Promise<Staff[]> {
+    const results: Staff[] = []
     
-    if (id >= 9000) return ['admin']
-    if (id >= 8000 && id <= 8999) return ['manager']
-    return ['staff']
+    try {
+      const response = await fetch(`${BASE_URL}/api/Staffs?search=${encodeURIComponent(keyword)}`, {
+        headers: { ...authHeaders }
+      })
+      if (response.ok) {
+        const data: Staff[] = await response.json()
+        results.push(...data)
+      }
+    } catch (error) {
+      console.warn('Error searching active staff:', error)
+    }
+
+    if (includeInactive) {
+      try {
+        const response2 = await fetch(`${BASE_URL}/api/Staffs/inactive?search=${encodeURIComponent(keyword)}`, {
+          headers: { ...authHeaders }
+        })
+        if (response2.ok) {
+          const data: Staff[] = await response2.json()
+          results.push(...data)
+        }
+      } catch (error) {
+        console.warn('Error searching inactive staff:', error)
+      }
+    }
+
+    return results
   }
+
+
+  async function validateEmail(email: string): Promise<void> {
+    if (emailTimer) clearTimeout(emailTimer)
+    
+    if (!email) {
+      setFormErrors(prev => ({ ...prev, email: '' }))
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setFormErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }))
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const existingStaffs = await searchStaffs(email)
+        const exists = existingStaffs.some((s: Staff) => 
+          (s.email || '').toLowerCase() === email.toLowerCase()
+        )
+        
+        setFormErrors(prev => ({
+          ...prev,
+          email: exists ? 'Email already exists' : ''
+        }))
+      } catch (error) {
+        setFormErrors(prev => ({ ...prev, email: '' }))
+      }
+    }, 600)
+    setEmailTimer(timer)
+  }
+
+  // Form handling functions exactly matching your TypeScript code
+  function updateDefaultHours(contractType: string): void {
+    let defaultHours: number
+    switch (contractType) {
+      case 'FullTime':
+        defaultHours = 40
+        break
+      case 'Casual':
+        defaultHours = 20
+        break
+      case 'PartTime':
+        defaultHours = 30
+        break
+      default:
+        defaultHours = 40
+    }
+    
+    setFormData(prev => ({ ...prev, standardHoursPerWeek: defaultHours }))
+  }
+
+  function updateOvertimeRate(): void {
+    if (!autoOvertimeEnabled) return
+    
+    const standardRate = parseFloat(formData.standardPayRate)
+    if (standardRate && standardRate > 0) {
+      setFormData(prev => ({
+        ...prev,
+        overtimePayRate: (standardRate * 1.5).toFixed(2)
+      }))
+    }
+  }
+
+  function toggleOvertimeCalculation(): void {
+    setAutoOvertimeEnabled(prev => !prev)
+    if (!autoOvertimeEnabled) {
+      updateOvertimeRate()
+    }
+  }
+
+  function checkOvertimeRate(): void {
+    const standardRate = parseFloat(formData.standardPayRate)
+    const overtimeRate = parseFloat(formData.overtimePayRate)
+    
+    if (standardRate && overtimeRate) {
+      if (overtimeRate < standardRate) {
+        setFormErrors(prev => ({
+          ...prev,
+          overtimePayRate: 'Overtime rate is less than standard rate'
+        }))
+      } else {
+        setFormErrors(prev => ({
+          ...prev,
+          overtimePayRate: ''
+        }))
+      }
+    }
+  }
+
 
 
   // 🛡️ 新增：检查是否可以删除某个员工
@@ -181,70 +318,80 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   // Helper functions
   const resetForm = () => {
     setFormData({
-      id: '',
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
-      pin: '',
-      role: '',
-      hourlyRate: '',
+      role: 'Staff',
+      phone: '',
+      address: '',
+      contractType: 'Casual',
+      standardPayRate: '',
+      overtimePayRate: '',
+      standardHoursPerWeek: '40',
+      isActive: true,
     })
     setFormErrors({})
+    setAutoOvertimeEnabled(true)
+    setAddAnother(false)
+    
+    // Clear timers
+    if (emailTimer) {
+      clearTimeout(emailTimer)
+      setEmailTimer(null)
+    }
+    
+    // Reset user interaction flags
+    setUserTouchedStandardPay(false)
+    setUserTouchedOvertimePay(false)
   }
 
-  // 🚀 新增：处理ID变化时的角色自动调整和实时验证
-  const handleIdChange = (newId: string) => {
-    const availableRoles = getAvailableRoles(newId)
-    
-    // 实时验证ID重复
-    const errors: Record<string, string> = { ...formErrors }
-    if (newId && staffs.find(s => s.id?.toString() === newId)) {
-      errors.id = 'Staff ID already exists'
-    } else if (newId && !/^\d+$/.test(newId)) {
-      errors.id = 'Staff ID must be a number'
-    } else {
-      delete errors.id
-    }
-    setFormErrors(errors)
-    
-    setFormData(prev => ({
-      ...prev,
-      id: newId,
-      // 如果当前角色不在可选范围内，自动选择第一个可用角色
-      role: availableRoles.includes(prev.role) ? prev.role : availableRoles[0]
-    }))
-  }
 
   const validateForm = (isEditing = false) => {
     const errors: Record<string, string> = {}
     
-    // ID validation (only for new staff)
-    if (!isEditing) {
-      if (!formData.id) errors.id = 'Staff ID is required'
-      else if (!/^\d+$/.test(formData.id)) errors.id = 'Staff ID must be a number'
-      else if (staffs.find(s => s.id?.toString() === formData.id)) {
-        errors.id = 'Staff ID already exists'
-      }
-    }
+    // Name validation
+    if (!formData.firstName.trim()) errors.firstName = 'First name is required'
+    if (!formData.lastName.trim()) errors.lastName = 'Last name is required'
     
-    if (!formData.name.trim()) errors.name = 'Name is required'
+    // Email validation
     if (!formData.email.trim()) errors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Invalid email format'
     
-    if (!formData.pin) errors.pin = 'PIN is required'
-    else if (formData.pin.length < 4) errors.pin = 'PIN must be at least 4 characters'
-    
+    // Role validation
     if (!formData.role) errors.role = 'Role is required'
     
-    if (!formData.hourlyRate) errors.hourlyRate = 'Hourly rate is required'
-    else if (isNaN(Number(formData.hourlyRate)) || Number(formData.hourlyRate) <= 0) {
-      errors.hourlyRate = 'Hourly rate must be a positive number'
+    // Contract type validation
+    if (!formData.contractType) errors.contractType = 'Contract type is required'
+    
+    // Standard hours validation
+    const hours = Number(formData.standardHoursPerWeek)
+    if (!formData.standardHoursPerWeek || hours <= 0 || hours > 60) {
+      errors.standardHoursPerWeek = 'Standard hours must be between 1 and 60'
+    }
+    
+    // Pay rate validation (only if provided)
+    if (formData.standardPayRate) {
+      if (isNaN(Number(formData.standardPayRate)) || Number(formData.standardPayRate) <= 0) {
+        errors.standardPayRate = 'Standard pay rate must be a positive number'
+      }
+    }
+    
+    if (formData.overtimePayRate) {
+      if (isNaN(Number(formData.overtimePayRate)) || Number(formData.overtimePayRate) <= 0) {
+        errors.overtimePayRate = 'Overtime pay rate must be a positive number'
+      }
+    }
+    
+    // Phone validation (optional but if provided must be valid)
+    if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+      errors.phone = 'Please enter a valid phone number'
     }
     
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const isEditing = editingStaff !== null
     if (!validateForm(isEditing)) return
     
@@ -252,11 +399,15 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       // Update existing staff
       const updatedStaff = {
         ...editingStaff,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        pin: formData.pin,
-        role: formData.role,
-        hourlyRate: parseFloat(formData.hourlyRate),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone?.trim() || undefined,
+        address: formData.address?.trim() || undefined,
+        standardPayRate: parseFloat(formData.standardPayRate),
+        overtimePayRate: parseFloat(formData.overtimePayRate),
+        contractType: formData.contractType,
+        standardHoursPerWeek: parseFloat(formData.standardHoursPerWeek) || 40,
       }
       
       updateStaffMutation.mutate({ 
@@ -264,18 +415,41 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         data: updatedStaff 
       })
     } else {
-      // Create new staff
+      // Create new staff using StaffCreateRequest model
       const newStaff = {
-        id: parseInt(formData.id),
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        pin: formData.pin,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
         role: formData.role,
-        hourlyRate: parseFloat(formData.hourlyRate),
-        isActive: true,
+        phone: formData.phone?.trim() || null,
+        address: formData.address?.trim() || null,
+        contractType: formData.contractType,
+        standardPayRate: formData.standardPayRate ? parseFloat(formData.standardPayRate) : null,
+        overtimePayRate: formData.overtimePayRate ? parseFloat(formData.overtimePayRate) : null,
+        standardHoursPerWeek: formData.standardHoursPerWeek ? parseInt(formData.standardHoursPerWeek) : null,
+        isActive: formData.isActive,
       }
       
-      createStaffMutation.mutate(newStaff)
+      try {
+        await createStaffMutation.mutateAsync(newStaff as StaffCreateRequest)
+        
+        // Handle "add another" functionality
+        if (addAnother) {
+          // Reset form but keep some values for convenience
+          const keepValues = {
+            role: formData.role,
+            contractType: formData.contractType,
+            standardHoursPerWeek: formData.standardHoursPerWeek,
+            standardPayRate: formData.standardPayRate,
+            overtimePayRate: formData.overtimePayRate,
+          }
+          resetForm()
+          setFormData(prev => ({ ...prev, ...keepValues }))
+          setIsAddDialogOpen(true)
+        }
+      } catch (error) {
+        console.error('Failed to create staff:', error)
+      }
     }
   }
 
@@ -286,13 +460,22 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   }
 
   const handleEditStaff = (staff: Staff) => {
+    const nameParts = (staff.name || '').split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+    
     setFormData({
-      id: staff.id?.toString() || '',
-      name: staff.name || '',
+      firstName: firstName,
+      lastName: lastName,
       email: staff.email || '',
-      pin: staff.pin || '',
-      role: staff.role || '',
-      hourlyRate: staff.hourlyRate?.toString() || '',
+      role: staff.role || 'Staff',
+      phone: staff.phone || '',
+      address: staff.address || '',
+      contractType: staff.contractType || 'Casual',
+      standardPayRate: staff.standardPayRate?.toString() || staff.hourlyRate?.toString() || '',
+      overtimePayRate: staff.overtimePayRate?.toString() || '',
+      standardHoursPerWeek: staff.standardHoursPerWeek?.toString() || '40',
+      isActive: staff.isActive !== undefined ? staff.isActive : true,
     })
     setFormErrors({})
     setEditingStaff(staff)
@@ -316,23 +499,6 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     }
   }
 
-  // Format deletion time for display
-  const formatDeletedAt = (dateString: string) => {
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      })
-    } catch (error) {
-      return dateString
-    }
-  }
 
   const clearFilters = () => {
     setSearchQuery('')
@@ -416,6 +582,15 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
 
   return (
     <Box>
+      {/* Welcome Message */}
+      <Paper elevation={1} sx={{ p: 2, mb: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
+        <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <span>🎉</span>
+          Welcome back, <strong>{currentUser.firstName} {currentUser.lastName}</strong>! 
+          You are logged in as <strong>{currentUser.role}</strong>.
+        </Typography>
+      </Paper>
+
       {/* Header */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
         <People sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
@@ -682,7 +857,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell>Full-time</TableCell>
+                      <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
                       <TableCell>
                         ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                       </TableCell>
@@ -773,13 +948,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                             color="default"
                           />
                         </TableCell>
-                        <TableCell>Full-time</TableCell>
+                        <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
                         <TableCell>
                           ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {formatDeletedAt(staff.updatedAt || '')}
+                            {formatDateTimeString(staff.updatedAt || '')}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -863,86 +1038,98 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         </Grid>
       )}
 
-      {/* Add Staff Dialog */}
+      {/* Enhanced Add Staff Dialog */}
       <Dialog 
         open={isAddDialogOpen} 
         onClose={() => setIsAddDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+          }
+        }}
       >
-        <DialogTitle>Add New Staff Member</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
+        <DialogTitle sx={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 600, 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          pb: 2
+        }}>
+          Add New Staff Member
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          {/* Profile Information Section */}
+          <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'grey.50', border: 1, borderColor: 'grey.200' }}>
+            <Typography variant="h6" sx={{ 
+              mb: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              fontWeight: 600
+            }}>
+              <People /> Profile Information
+            </Typography>
+            
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Staff ID"
-                  type="number"
-                  value={formData.id}
-                  onChange={(e) => handleIdChange(e.target.value)}
-                  error={!!formErrors.id}
-                  helperText={formErrors.id || 'ID范围决定角色: <8000=Staff, 8000-8999=Manager, ≥9000=Admin'}
-                  placeholder="Enter staff ID number"
-                  autoComplete="off"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="PIN"
-                  type="password"
-                  value={formData.pin}
-                  onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                  error={!!formErrors.pin}
-                  helperText={formErrors.pin || 'At least 4 characters'}
-                  placeholder="Enter staff PIN"
-                  autoComplete="new-password"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Full Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  error={!!formErrors.name}
-                  helperText={formErrors.name}
-                  placeholder="Enter staff full name"
-                  autoComplete="name"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  error={!!formErrors.email}
-                  helperText={formErrors.email}
-                  placeholder="Enter email address"
-                  autoComplete="email"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={!!formErrors.role}>
+                <FormControl 
+                  fullWidth 
+                  required 
+                  error={!!formErrors.role}
+                  sx={{
+                    '& .MuiInputLabel-asterisk': {
+                      color: '#d32f2f'
+                    }
+                  }}
+                >
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => {
+                      const role = e.target.value
+                      setFormData(prev => ({ ...prev, role }))
+                      
+                      // Auto-set default pay rates based on role if not touched by user
+                      if (!userTouchedStandardPay) {
+                        let defaultPay = 25
+                        if (role === 'Manager') defaultPay = 35
+                        else if (role === 'Admin') defaultPay = 45
+                        
+                        setFormData(prev => ({ ...prev, standardPayRate: defaultPay.toString() }))
+                        
+                        if (autoOvertimeEnabled) {
+                          setFormData(prev => ({ ...prev, overtimePayRate: (defaultPay * 1.5).toFixed(2) }))
+                        }
+                      }
+                    }}
                     label="Role"
+                    sx={{ 
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderRadius: '8px',
+                        borderColor: formData.role ? '#1976d2' : '#d32f2f',
+                        borderWidth: '1px'
+                      },
+                      height: '56px',
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    }}
                   >
-                    {getAvailableRoles(formData.id).map(role => (
-                      <MenuItem key={role} value={role}>
-                        {role === 'staff' && 'Staff (1000-7999)'}
-                        {role === 'manager' && 'Manager (8000-8999)'}
-                        {role === 'admin' && 'Admin (9000+)'}
-                      </MenuItem>
-                    ))}
+                    <MenuItem value="Staff">Staff (ID: 1000-7999)</MenuItem>
+                    <MenuItem value="Manager">Manager (ID: 8000-8999)</MenuItem>
+                    <MenuItem value="Admin">Admin (ID: 9000-9999)</MenuItem>
                   </Select>
                   {formErrors.role && (
-                    <Typography variant="caption" color="error" sx={{ ml: 2 }}>
+                    <Typography variant="caption" color="error" sx={{ ml: 2, mt: 0.5 }}>
                       {formErrors.role}
                     </Typography>
                   )}
@@ -951,32 +1138,371 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Hourly Rate"
+                  label="Email"
+                  required
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setFormData(prev => ({ ...prev, email: value }))
+                    validateEmail(value)
+                  }}
+                  error={!!formErrors.email}
+                  helperText={formErrors.email}
+                  placeholder="john.doe@company.com"
+                  autoComplete="email"
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      height: '56px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: formData.email ? '#1976d2' : '#d32f2f',
+                        borderWidth: '1px'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    },
+                    '& .MuiInputLabel-asterisk': {
+                      color: '#d32f2f'
+                    }
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  error={!!formErrors.firstName}
+                  helperText={formErrors.firstName}
+                  placeholder="John"
+                  autoComplete="given-name"
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      height: '56px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: formData.firstName ? '#1976d2' : '#d32f2f',
+                        borderWidth: '1px'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    },
+                    '& .MuiInputLabel-asterisk': {
+                      color: '#d32f2f'
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  error={!!formErrors.lastName}
+                  helperText={formErrors.lastName}
+                  placeholder="Doe"
+                  autoComplete="family-name"
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      height: '56px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: formData.lastName ? '#1976d2' : '#d32f2f',
+                        borderWidth: '1px'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    },
+                    '& .MuiInputLabel-asterisk': {
+                      color: '#d32f2f'
+                    }
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone (Optional)"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  error={!!formErrors.phone}
+                  helperText={formErrors.phone}
+                  placeholder="+61 400 000 000"
+                  autoComplete="tel"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Address (Optional)"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  error={!!formErrors.address}
+                  helperText={formErrors.address}
+                  placeholder="123 Main St, Adelaide SA"
+                  autoComplete="address-line1"
+                />
+              </Grid>
+              
+            </Grid>
+          </Paper>
+
+          {/* Pay & Contract Details Section */}
+          <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'grey.50', border: 1, borderColor: 'grey.200' }}>
+            <Typography variant="h6" sx={{ 
+              mb: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              fontWeight: 600
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/>
+              </svg>
+              Pay & Contract Details
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <FormControl 
+                  fullWidth 
+                  required 
+                  error={!!formErrors.contractType}
+                  sx={{
+                    '& .MuiInputLabel-asterisk': {
+                      color: '#d32f2f'
+                    }
+                  }}
+                >
+                  <InputLabel>Contract Type</InputLabel>
+                  <Select
+                    value={formData.contractType}
+                    onChange={(e) => {
+                      const contractType = e.target.value
+                      setFormData({ ...formData, contractType })
+                      updateDefaultHours(contractType)
+                    }}
+                    label="Contract Type"
+                    sx={{ 
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderRadius: '8px',
+                        borderColor: formData.contractType ? '#1976d2' : '#d32f2f',
+                        borderWidth: '1px'
+                      },
+                      height: '56px',
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    }}
+                  >
+                    <MenuItem value="Casual">Casual</MenuItem>
+                    <MenuItem value="PartTime">Part Time</MenuItem>
+                    <MenuItem value="FullTime">Full Time</MenuItem>
+                  </Select>
+                  {formErrors.contractType && (
+                    <Typography variant="caption" color="error" sx={{ ml: 2 }}>
+                      {formErrors.contractType}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Standard Hours/Week (Optional)"
                   type="number"
-                  value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                  error={!!formErrors.hourlyRate}
-                  helperText={formErrors.hourlyRate}
+                  value={formData.standardHoursPerWeek}
+                  onChange={(e) => setFormData({ ...formData, standardHoursPerWeek: e.target.value })}
+                  error={!!formErrors.standardHoursPerWeek}
+                  helperText={formErrors.standardHoursPerWeek || 'Leave empty to use role defaults'}
+                  placeholder="40"
+                  inputProps={{ min: 1, max: 60, step: 0.5 }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      height: '56px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: formData.standardHoursPerWeek ? '#1976d2' : 'rgba(0, 0, 0, 0.23)',
+                        borderWidth: '1px'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '2px'
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '2px'
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Standard Pay Rate (Optional)"
+                  type="number"
+                  value={formData.standardPayRate}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setUserTouchedStandardPay(true)
+                    setFormData({ ...formData, standardPayRate: value })
+                    // Auto-update overtime rate if enabled
+                    if (autoOvertimeEnabled && value) {
+                      const overtimeRate = (parseFloat(value) * 1.5).toFixed(2)
+                      setFormData(prev => ({ ...prev, standardPayRate: value, overtimePayRate }))
+                    }
+                  }}
+                  error={!!formErrors.standardPayRate}
+                  helperText={formErrors.standardPayRate || 'Leave empty to use role defaults'}
                   placeholder="25.00"
-                  autoComplete="off"
+                  inputProps={{ min: 0.01, step: 0.01 }}
                   InputProps={{
                     startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
                   }}
                 />
               </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Overtime Pay Rate (Optional)"
+                  type="number"
+                  value={formData.overtimePayRate}
+                  onChange={(e) => {
+                    setUserTouchedOvertimePay(true)
+                    setFormData({ ...formData, overtimePayRate: e.target.value })
+                  }}
+                  error={!!formErrors.overtimePayRate}
+                  helperText={formErrors.overtimePayRate || 'Leave empty to use 1.5× standard rate'}
+                  placeholder="37.50"
+                  inputProps={{ min: 0.01, step: 0.01 }}
+                  disabled={autoOvertimeEnabled}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                  }}
+                />
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <input 
+                    type="checkbox" 
+                    id="autoOvertimeCalc"
+                    checked={autoOvertimeEnabled}
+                    onChange={(e) => {
+                      setAutoOvertimeEnabled(e.target.checked)
+                      if (e.target.checked) {
+                        setTimeout(updateOvertimeRate, 100)
+                      }
+                    }}
+                    style={{ accentColor: '#3b82f6' }}
+                  />
+                  <Typography variant="caption" color="textSecondary">
+                    Auto 1.5× calculation
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              
+              <Grid item xs={12} sm={6}>
+                <Paper sx={{ p: 2, bgcolor: 'grey.25', border: 1, borderColor: 'grey.200' }}>
+                  <Typography variant="h6" sx={{ 
+                    mb: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    fontWeight: 600
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832L12 11.202a1 1 0 000-1.404l-2.445-1.63z"/>
+                    </svg>
+                    Status
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    Account Status
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Typography variant="body1" sx={{ fontWeight: formData.isActive ? 600 : 400 }}>
+                        {formData.isActive ? 'Active' : 'Inactive'}
+                      </Typography>
+                    }
+                  />
+                </Paper>
+              </Grid>
             </Grid>
+          </Paper>
             
-            {createStaffMutation.isError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                Failed to create staff member. Please check all fields and try again.
-              </Alert>
-            )}
-          </Box>
+          {createStaffMutation.isError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              Failed to create staff member. Please check all fields and try again.
+            </Alert>
+          )}
         </DialogContent>
-        <DialogActions>
+        
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: 1, 
+          borderColor: 'divider',
+          bgcolor: 'grey.50',
+          display: 'flex',
+          gap: 2
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 'auto' }}>
+            <input 
+              type="checkbox" 
+              id="addAnother"
+              checked={addAnother}
+              onChange={(e) => setAddAnother(e.target.checked)}
+              style={{ accentColor: '#3b82f6' }}
+            />
+            <Typography variant="body2" color="textSecondary">
+              Create and add another
+            </Typography>
+          </Box>
+          
           <Button 
             onClick={() => setIsAddDialogOpen(false)}
             disabled={createStaffMutation.isPending}
+            variant="outlined"
           >
             Cancel
           </Button>
@@ -985,6 +1511,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
             variant="contained"
             disabled={createStaffMutation.isPending}
             startIcon={createStaffMutation.isPending ? <CircularProgress size={20} /> : <Add />}
+            sx={{ minWidth: 140 }}
           >
             {createStaffMutation.isPending ? 'Creating...' : 'Create Staff'}
           </Button>
@@ -1013,19 +1540,6 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="PIN"
-                  type="password"
-                  value={formData.pin}
-                  onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                  error={!!formErrors.pin}
-                  helperText={formErrors.pin || 'At least 4 characters'}
-                  placeholder="Enter staff PIN"
-                  autoComplete="new-password"
-                />
-              </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -1050,29 +1564,6 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   placeholder="Enter email address"
                   autoComplete="email"
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={!!formErrors.role}>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    label="Role"
-                  >
-                    {getAvailableRoles(formData.id).map(role => (
-                      <MenuItem key={role} value={role}>
-                        {role === 'staff' && 'Staff (1000-7999)'}
-                        {role === 'manager' && 'Manager (8000-8999)'}
-                        {role === 'admin' && 'Admin (9000+)'}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.role && (
-                    <Typography variant="caption" color="error" sx={{ ml: 2 }}>
-                      {formErrors.role}
-                    </Typography>
-                  )}
-                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField

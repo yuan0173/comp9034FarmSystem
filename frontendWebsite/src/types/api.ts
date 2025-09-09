@@ -25,9 +25,9 @@ export interface Event {
 }
 
 export interface Staff {
-  id: number
   staffId: number
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone?: string
   address?: string
@@ -35,12 +35,20 @@ export interface Staff {
   pin: string
   passwordHash: string
   role: string
-  hourlyRate: number
+  standardPayRate: number
+  overtimePayRate: number
+  contractType: string
+  standardHoursPerWeek: number
   isActive: boolean
   createdAt: string
   updatedAt: string
   events: Event[]
   biometricData: BiometricData[]
+  
+  // Computed properties for backward compatibility
+  id: number          // maps to staffId
+  name: string        // computed from firstName + lastName
+  hourlyRate: number  // maps to standardPayRate
 }
 
 // Event types enumeration
@@ -86,6 +94,21 @@ export interface EventQuery {
 
 export interface StaffQuery {
   query?: string
+}
+
+// Staff creation request interface (matches backend StaffCreateRequest)
+export interface StaffCreateRequest {
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  phone?: string | null
+  address?: string | null
+  contractType?: string | null
+  standardPayRate?: number | null
+  overtimePayRate?: number | null
+  standardHoursPerWeek?: number | null
+  isActive?: boolean | null
 }
 
 // Offline event queue item

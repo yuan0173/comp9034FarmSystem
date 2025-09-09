@@ -8,25 +8,58 @@ namespace COMP9034.Backend.Models
     public class LoginRequest
     {
         [Required]
-        [StringLength(50)]
-        public string Username { get; set; } = string.Empty;
+        [EmailAddress]
+        [StringLength(100)]
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(100)]
         public string Password { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// PIN login request model
+    /// User registration request model
     /// </summary>
-    public class PinLoginRequest
+    public class RegisterRequest
     {
         [Required]
-        public int StaffId { get; set; }
+        [StringLength(50)]
+        public string FirstName { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(10)]
-        public string Pin { get; set; } = string.Empty;
+        [StringLength(50)]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        [StringLength(100)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Phone]
+        public string? Phone { get; set; }
+
+        [StringLength(200)]
+        public string? Address { get; set; }
+    }
+
+    /// <summary>
+    /// Change password request model
+    /// </summary>
+    public class ChangePasswordRequest
+    {
+        [Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        public string ConfirmNewPassword { get; set; } = string.Empty;
     }
 
     /// <summary>

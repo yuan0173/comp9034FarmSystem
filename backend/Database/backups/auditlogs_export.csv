@@ -1,0 +1,2 @@
+Id,TableName,Operation,RecordId,PerformedByStaffId,IpAddress,OldValues,NewValues,Timestamp
+1,Staffs,CREATE,2001,9001,127.0.0.1,NULL,"{""id"":2001,""name"":""Test Worker"",""role"":""staff"",""pin"":""2001"",""username"":null,""passwordHash"":null,""hourlyRate"":30,""email"":""test@example.com"",""phone"":null,""address"":null,""isActive"":true,""createdAt"":""2025-08-28T10:09:54.419658Z"",""updatedAt"":""2025-08-28T10:09:54.419658Z"",""events"":[],""biometricData"":[]}","2025-08-28 10:09:54.428136"

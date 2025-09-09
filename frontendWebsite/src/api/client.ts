@@ -7,7 +7,8 @@ import {
   Event,
   EventQuery,
   Staff,
-  StaffQuery
+  StaffQuery,
+  StaffCreateRequest
 } from '../types/api'
 
 // Biometric API
@@ -128,7 +129,7 @@ export const staffApi = {
     return response.data
   },
 
-  create: async (data: Omit<Staff, 'staffId'>): Promise<Staff> => {
+  create: async (data: StaffCreateRequest): Promise<Staff> => {
     const response = await httpClient.post('/api/Staffs', data)
     return response.data
   },
@@ -163,18 +164,32 @@ export const staffApi = {
 
 // Auth API
 export const authApi = {
-  loginWithPin: async (staffId: number, pin: string) => {
-    const response = await httpClient.post('/api/Auth/login-pin', {
-      staffId,
-      pin
+  login: async (email: string, password: string) => {
+    const response = await httpClient.post('/api/Auth/login', {
+      email,
+      password
     })
     return response.data
   },
 
-  login: async (username: string, password: string) => {
-    const response = await httpClient.post('/api/Auth/login', {
-      username,
-      password
+  register: async (firstName: string, lastName: string, email: string, password: string, confirmPassword: string, phone?: string, address?: string) => {
+    const response = await httpClient.post('/api/Auth/register', {
+      firstName,
+      lastName,
+      email,
+      password,
+      confirmPassword,
+      phone,
+      address
+    })
+    return response.data
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string, confirmNewPassword: string) => {
+    const response = await httpClient.put('/api/Auth/change-password', {
+      currentPassword,
+      newPassword,
+      confirmNewPassword
     })
     return response.data
   },

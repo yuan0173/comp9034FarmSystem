@@ -12,7 +12,8 @@ const checkBackendConnection = async (): Promise<boolean> => {
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
-    const response = await fetch(`${baseURL}/api/Staffs?limit=1`, {
+    // Use public health endpoint for connectivity (no auth required)
+    const response = await fetch(`${baseURL}/health`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -20,12 +21,13 @@ const checkBackendConnection = async (): Promise<boolean> => {
       signal: AbortSignal.timeout(5000), // 5 second timeout
     })
 
-    const isConnected = response.status !== 0 && response.status < 600
+    // Consider only successful 2xx as connected
+    const isConnected = response.ok
     console.log(
       `Backend connection check: ${isConnected ? 'Connected' : 'Failed'}`,
       {
         status: response.status,
-        url: `${baseURL}/api/Staffs`,
+        url: `${baseURL}/health`,
       }
     )
 

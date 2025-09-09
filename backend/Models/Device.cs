@@ -1,24 +1,26 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Device entity model
+    /// Device entity model - Updated for Tan Architecture
     /// </summary>
     public class Device
     {
         /// <summary>
-        /// Device ID
+        /// Device ID (Primary Key)
         /// </summary>
-        public int Id { get; set; }
+        public int DeviceId { get; set; }
 
         /// <summary>
         /// Device name
         /// </summary>
-        public string Name { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
 
         /// <summary>
         /// Device type: 'biometric', 'terminal', 'card_reader'
         /// </summary>
-        public string Type { get; set; } = string.Empty;
+        public string DeviceType { get; set; } = string.Empty;
 
         /// <summary>
         /// Device location
@@ -26,9 +28,9 @@ namespace COMP9034.Backend.Models
         public string? Location { get; set; }
 
         /// <summary>
-        /// Device status: 'active', 'inactive', 'maintenance'
+        /// Device status: 'Active', 'Inactive', 'Maintenance'
         /// </summary>
-        public string Status { get; set; } = "active";
+        public string Status { get; set; } = "Active";
 
         /// <summary>
         /// Device IP address
@@ -52,5 +54,37 @@ namespace COMP9034.Backend.Models
 
         // Navigation properties
         public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+        public virtual ICollection<BiometricVerification> BiometricVerifications { get; set; } = new List<BiometricVerification>();
+
+        // Backward compatibility properties
+        /// <summary>
+        /// Device ID property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public int Id
+        {
+            get => DeviceId;
+            set => DeviceId = value;
+        }
+
+        /// <summary>
+        /// Device name property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public string Name
+        {
+            get => DeviceName;
+            set => DeviceName = value;
+        }
+
+        /// <summary>
+        /// Device type property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public string Type
+        {
+            get => DeviceType;
+            set => DeviceType = value;
+        }
     }
 }

@@ -42,6 +42,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { loginHistoryApi } from '../api/client'
 import { LoginHistory } from '../types/api'
+import { formatDateTimeString } from '../utils/time'
 
 export function AdminLoginHistory() {
   // State management
@@ -101,22 +102,16 @@ export function AdminLoginHistory() {
     }
   }
 
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp)
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      })
-    } catch (error) {
-      return timestamp
+
+  // Format IP address for better display
+  const formatIpAddress = (ipAddress: string) => {
+    if (ipAddress === '::1') {
+      return 'localhost (::1)'
     }
+    if (ipAddress === '127.0.0.1') {
+      return 'localhost (127.0.0.1)'
+    }
+    return ipAddress
   }
 
   // Clear filters
@@ -229,7 +224,7 @@ export function AdminLoginHistory() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {formatTimestamp(record.timestamp)}
+                          {formatDateTimeString(record.timestamp)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -244,7 +239,7 @@ export function AdminLoginHistory() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" fontFamily="monospace">
-                          {record.ipAddress}
+                          {formatIpAddress(record.ipAddress)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -321,7 +316,7 @@ export function AdminLoginHistory() {
             <br />
             <strong>User:</strong> {deletingRecord?.username}
             <br />
-            <strong>Time:</strong> {deletingRecord ? formatTimestamp(deletingRecord.timestamp) : ''}
+            <strong>Time:</strong> {deletingRecord ? formatDateTimeString(deletingRecord.timestamp) : ''}
             <br />
             <br />
             This action cannot be undone.

@@ -152,7 +152,7 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 // Verify staff exists and is active
-                var staff = await _context.Staffs.FindAsync(biometricData.StaffId);
+                var staff = await _context.Staff.FindAsync(biometricData.StaffId);
                 if (staff == null || !staff.IsActive)
                 {
                     return BadRequest(new { message = $"Staff ID {biometricData.StaffId} does not exist or has been disabled" });

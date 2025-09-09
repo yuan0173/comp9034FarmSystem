@@ -1,0 +1,3 @@
+Id,Name,Type,Location,Status,IpAddress,IsActive,CreatedAt,UpdatedAt
+1,"Main Terminal",terminal,"Main Entrance",active,192.168.1.100,1,"2025-08-28 06:37:32.530523","2025-08-28 06:37:32.530523"
+2,"Biometric Scanner",biometric,"Security Office",active,192.168.1.101,1,"2025-08-28 06:37:32.530524","2025-08-28 06:37:32.530524"

@@ -44,22 +44,22 @@ namespace COMP9034.Backend.Controllers
 
             try
             {
-                // Find staff by username or email
-                var staff = await _context.Staffs
+                // Find staff by email only
+                var staff = await _context.Staff
                     .FirstOrDefaultAsync(s => 
-                        (s.Username == request.Username || s.Email == request.Username) && 
+                        s.Email == request.Email && 
                         s.IsActive);
 
                 if (staff == null)
                 {
-                    await LogLoginAttempt(request.Username, ipAddress, userAgent, false, "User not found", null);
+                    await LogLoginAttempt(request.Email, ipAddress, userAgent, false, "User not found", null);
                     return Unauthorized(new { message = "Invalid credentials" });
                 }
 
                 // Verify password
                 if (string.IsNullOrEmpty(staff.PasswordHash) || !VerifyPassword(request.Password, staff.PasswordHash))
                 {
-                    await LogLoginAttempt(request.Username, ipAddress, userAgent, false, "Invalid password", staff.Id);
+                    await LogLoginAttempt(request.Email, ipAddress, userAgent, false, "Invalid password", staff.StaffId);
                     return Unauthorized(new { message = "Invalid credentials" });
                 }
 
@@ -68,7 +68,7 @@ namespace COMP9034.Backend.Controllers
                 var refreshToken = _jwtService.GenerateRefreshToken();
 
                 // Log successful login
-                await LogLoginAttempt(request.Username, ipAddress, userAgent, true, null, staff.Id);
+                await LogLoginAttempt(request.Email, ipAddress, userAgent, true, null, staff.StaffId);
 
                 var response = new LoginResponse
                 {
@@ -84,58 +84,81 @@ namespace COMP9034.Backend.Controllers
                     }
                 };
 
-                _logger.LogInformation($"Successful login for staff ID: {staff.Id} from IP: {ipAddress}");
+                _logger.LogInformation($"Successful login for staff ID: {staff.StaffId} from IP: {ipAddress}");
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Login error for username: {request.Username} from IP: {ipAddress}");
-                await LogLoginAttempt(request.Username, ipAddress, userAgent, false, "Internal server error", null);
+                _logger.LogError(ex, $"Login error for email: {request.Email} from IP: {ipAddress}");
+                await LogLoginAttempt(request.Email, ipAddress, userAgent, false, "Internal server error", null);
                 return StatusCode(500, new { message = "Login failed due to server error" });
             }
         }
 
         /// <summary>
-        /// PIN-based login (for terminal devices)
+        /// User registration with custom password
         /// </summary>
-        /// <param name="request">PIN login request</param>
-        /// <returns>JWT token and user information</returns>
-        [HttpPost("login-pin")]
+        /// <param name="request">Registration details</param>
+        /// <returns>Registration result</returns>
+        [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<ActionResult<LoginResponse>> LoginWithPin([FromBody] PinLoginRequest request)
+        public async Task<ActionResult<LoginResponse>> Register([FromBody] RegisterRequest request)
         {
             var ipAddress = GetClientIpAddress();
             var userAgent = Request.Headers["User-Agent"].FirstOrDefault() ?? "Unknown";
 
             try
             {
-                var staff = await _context.Staffs
-                    .FirstOrDefaultAsync(s => s.Id == request.StaffId);
-
-                if (staff == null)
+                // Validate password confirmation
+                if (request.Password != request.ConfirmPassword)
                 {
-                    await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, false, "Staff not found", null);
-                    return Unauthorized(new { message = "Staff ID not found" });
+                    return BadRequest(new { message = "Password and confirmation password do not match" });
                 }
 
-                if (!staff.IsActive)
+                // Check if email already exists
+                if (await _context.Staff.AnyAsync(s => s.Email == request.Email))
                 {
-                    await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, false, "Staff account disabled", request.StaffId);
-                    return Unauthorized(new { message = "Staff account has been disabled" });
+                    return BadRequest(new { message = "Email address is already registered" });
                 }
 
-                if (staff.Pin != request.Pin)
-                {
-                    await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, false, "Invalid PIN", request.StaffId);
-                    return Unauthorized(new { message = "Invalid credentials" });
-                }
+                // Generate unique staff ID (starting from 2000 for self-registered users)
+                var lastStaffId = await _context.Staff
+                    .Where(s => s.StaffId >= 2000 && s.StaffId < 8000)
+                    .OrderByDescending(s => s.StaffId)
+                    .Select(s => s.StaffId)
+                    .FirstOrDefaultAsync();
+                
+                var newStaffId = Math.Max(lastStaffId + 1, 2000);
 
-                // Generate tokens
+                // Create new staff member
+                var staff = new Staff
+                {
+                    StaffId = newStaffId,
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Email = request.Email,
+                    Phone = request.Phone,
+                    Address = request.Address,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    Pin = newStaffId.ToString(), // Temporary - will be removed later
+                    StandardPayRate = 25.0m, // Default rate for self-registered users
+                    OvertimePayRate = 37.5m,
+                    ContractType = "Casual",
+                    StandardHoursPerWeek = 20,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Staff.Add(staff);
+                await _context.SaveChangesAsync();
+
+                // Generate tokens for immediate login
                 var token = _jwtService.GenerateToken(staff);
                 var refreshToken = _jwtService.GenerateRefreshToken();
 
-                // Log successful login
-                await LogLoginAttempt(request.StaffId.ToString(), ipAddress, userAgent, true, null, request.StaffId);
+                // Log successful registration
+                await LogLoginAttempt(request.Email, ipAddress, userAgent, true, "User registration", staff.StaffId);
 
                 var response = new LoginResponse
                 {
@@ -144,20 +167,75 @@ namespace COMP9034.Backend.Controllers
                     ExpiresAt = DateTime.UtcNow.AddMinutes(480), // 8 hours
                     Staff = new StaffInfo
                     {
-                        Id = staff.Id,
-                        Name = staff.Name,
+                        Id = staff.StaffId,
+                        Name = staff.FirstName + " " + staff.LastName,
                         Role = staff.GetRoleFromId(),
                         Email = staff.Email
                     }
                 };
 
-                _logger.LogInformation($"Successful PIN login for staff ID: {request.StaffId} from IP: {ipAddress}");
+                _logger.LogInformation($"Successful user registration: ID={staff.StaffId}, Email={request.Email}");
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"PIN login error from IP: {ipAddress}");
-                return StatusCode(500, new { message = "Login failed due to server error" });
+                _logger.LogError(ex, $"Registration error for email: {request.Email}");
+                return StatusCode(500, new { message = "Registration failed due to server error" });
+            }
+        }
+
+        /// <summary>
+        /// Change user password
+        /// </summary>
+        /// <param name="request">Password change details</param>
+        /// <returns>Change result</returns>
+        [HttpPut("change-password")]
+        [Authorize]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                // Validate password confirmation
+                if (request.NewPassword != request.ConfirmNewPassword)
+                {
+                    return BadRequest(new { message = "New password and confirmation do not match" });
+                }
+
+                var staff = await _context.Staff.FindAsync(currentUserId.Value);
+                if (staff == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                // Verify current password
+                if (string.IsNullOrEmpty(staff.PasswordHash) || !VerifyPassword(request.CurrentPassword, staff.PasswordHash))
+                {
+                    return BadRequest(new { message = "Current password is incorrect" });
+                }
+
+                // Update password
+                staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                staff.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                // Log password change
+                var ipAddress = GetClientIpAddress();
+                await _auditService.LogAsync("Staff", "PASSWORD_CHANGE", staff.StaffId.ToString(), 
+                    currentUserId.Value, ipAddress, "Password changed successfully");
+
+                _logger.LogInformation($"Password changed for user ID: {currentUserId}");
+                return Ok(new { message = "Password changed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
+                return StatusCode(500, new { message = "Failed to change password" });
             }
         }
 
@@ -177,7 +255,7 @@ namespace COMP9034.Backend.Controllers
                     return Unauthorized(new { message = "Invalid token" });
                 }
 
-                var staff = await _context.Staffs
+                var staff = await _context.Staff
                     .FirstOrDefaultAsync(s => s.Id == staffId && s.IsActive);
 
                 if (staff == null)
@@ -335,20 +413,39 @@ namespace COMP9034.Backend.Controllers
 
         private string GetClientIpAddress()
         {
-            // Check for forwarded IP first (load balancer/proxy)
-            var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(forwardedFor))
+            try
             {
-                return forwardedFor.Split(',')[0].Trim();
-            }
+                // Log all available headers for debugging
+                var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+                var realIp = Request.Headers["X-Real-IP"].FirstOrDefault();
+                var remoteIp = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                
+                _logger.LogDebug($"IP Detection - X-Forwarded-For: {forwardedFor ?? "null"}, X-Real-IP: {realIp ?? "null"}, RemoteIP: {remoteIp ?? "null"}");
+                
+                // Check for forwarded IP first (load balancer/proxy)
+                if (!string.IsNullOrEmpty(forwardedFor))
+                {
+                    var clientIp = forwardedFor.Split(',')[0].Trim();
+                    _logger.LogDebug($"Using X-Forwarded-For IP: {clientIp}");
+                    return clientIp;
+                }
 
-            var realIp = Request.Headers["X-Real-IP"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(realIp))
+                if (!string.IsNullOrEmpty(realIp))
+                {
+                    _logger.LogDebug($"Using X-Real-IP: {realIp}");
+                    return realIp;
+                }
+
+                // For development, try to get the actual client IP from connection
+                var finalIp = remoteIp ?? "Unknown";
+                _logger.LogDebug($"Using RemoteIpAddress: {finalIp}");
+                return finalIp;
+            }
+            catch (Exception ex)
             {
-                return realIp;
+                _logger.LogError(ex, "Error getting client IP address");
+                return "Unknown";
             }
-
-            return Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         }
 
         private bool VerifyPassword(string password, string hash)
