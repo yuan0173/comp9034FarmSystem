@@ -7,17 +7,44 @@ export function parseISODate(dateString: string): Date {
 
 // Format date for display
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString()
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
 
 // Format time for display
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString()
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
 }
 
 // Format datetime for display
 export function formatDateTime(date: Date): string {
-  return `${formatDate(date)} ${formatTime(date)}`
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+}
+
+// Format datetime string (accepts string parameter)
+export function formatDateTimeString(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    return formatDateTime(date)
+  } catch (error) {
+    return dateString
+  }
 }
 
 // Calculate duration in hours between two dates
