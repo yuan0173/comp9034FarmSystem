@@ -48,7 +48,7 @@ namespace COMP9034.Backend.Services
                 {
                     new(TokenClaims.StaffId, staff.Id.ToString()),
                     new(TokenClaims.Name, staff.Name),
-                    new(TokenClaims.Role, staff.GetRoleFromId()), // Use standardized lowercase role
+                    new(TokenClaims.Role, staff.GetRoleFromId().ToLower()), // Use standardized lowercase role
                     new(JwtRegisteredClaimNames.Sub, staff.Id.ToString()),
                     new(JwtRegisteredClaimNames.Iat, 
                         new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(), 

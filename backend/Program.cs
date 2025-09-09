@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Text;
 using COMP9034.Backend.Data;
 using COMP9034.Backend.Services;
@@ -28,7 +30,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     // Use SQLite for all environments (development and production)
     var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
         ?? builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=./Data/farmtimems-dev.db";
+        ?? "Data Source=Database/system.db";
     options.UseSqlite(connectionString);
 });
 
@@ -73,6 +75,32 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// Configure forwarded headers for real IP address detection
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    
+    // Allow all private network ranges for development
+    if (builder.Environment.IsDevelopment())
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        options.ForwardedForHeaderName = "X-Forwarded-For";
+        options.ForwardedProtoHeaderName = "X-Forwarded-Proto";
+        
+        // Accept forwarded headers from any source in development
+        options.ForwardLimit = null;
+    }
+    else
+    {
+        // Production: Configure known proxies and networks
+        options.KnownProxies.Add(System.Net.IPAddress.Loopback);
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8));
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16));
+    }
+});
 
 // 🌟 Industry standard: Dynamic CORS configuration
 builder.Services.AddCors(options =>
@@ -168,20 +196,21 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Ensure database is created
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try 
-    {
-        context.Database.EnsureCreated();
-        Console.WriteLine("✅ Database initialization successful");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
-    }
-}
+// Database already exists with migrated data - skip initialization
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+//     try 
+//     {
+//         context.Database.EnsureCreated();
+//         Console.WriteLine("✅ Database initialization successful");
+//     }
+//     catch (Exception ex)
+//     {
+//         Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
+//     }
+// }
+Console.WriteLine("✅ Using existing database with migrated data");
 
 // Configure HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -200,6 +229,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseForwardedHeaders(); // Must be early in the pipeline for IP forwarding
 app.UseRouting();
 app.UseCors("AllowFrontend");  // ✅ CORS must be before authentication, after routing
 app.UseAuthentication();
