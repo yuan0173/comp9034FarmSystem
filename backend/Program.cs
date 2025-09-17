@@ -71,6 +71,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register services
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<DatabaseInitializationService>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -230,18 +231,19 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Apply migrations automatically (safe for dev; for prod keep schema in sync)
+// Initialize database with migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var dbInitService = scope.ServiceProvider.GetRequiredService<DatabaseInitializationService>();
     try
     {
-        context.Database.Migrate();
-        Console.WriteLine("✅ Database migration applied successfully");
+        await dbInitService.InitializeAsync();
+        Console.WriteLine("✅ Database initialization completed successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Database migration failed: {ex.Message}");
+        Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
+        // Don't exit - let the app start anyway for debugging
     }
 }
 
