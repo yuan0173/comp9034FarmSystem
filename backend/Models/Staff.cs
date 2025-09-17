@@ -1,32 +1,64 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Staff entity model
+    /// Staff entity model - Updated for Tan Architecture
     /// </summary>
     public class Staff
     {
         /// <summary>
-        /// Staff ID
+        /// Staff ID (Primary Key)
         /// </summary>
-        public int Id { get; set; }
+        public int StaffId { get; set; }
 
         /// <summary>
-        /// Staff name
+        /// First name
         /// </summary>
-        public string Name { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
 
         /// <summary>
-        /// User role: 'staff', 'manager', 'admin'
+        /// Last name
         /// </summary>
-        public string Role { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
 
         /// <summary>
-        /// PIN password (4 digits)
+        /// Email address (required, unique)
+        /// </summary>
+        public string Email { get; set; } = string.Empty;
+
+        /// <summary>
+        /// User role: 'Staff', 'Manager', 'Admin'
+        /// </summary>
+        public string Role { get; set; } = "Staff";
+
+        /// <summary>
+        /// Standard hourly pay rate
+        /// </summary>
+        public decimal StandardPayRate { get; set; }
+
+        /// <summary>
+        /// Overtime hourly pay rate
+        /// </summary>
+        public decimal OvertimePayRate { get; set; }
+
+        /// <summary>
+        /// Contract type: 'FullTime', 'PartTime', 'Casual'
+        /// </summary>
+        public string ContractType { get; set; } = "Casual";
+
+        /// <summary>
+        /// Standard working hours per week
+        /// </summary>
+        public int StandardHoursPerWeek { get; set; } = 40;
+
+        /// <summary>
+        /// PIN password for device access (maintained for compatibility)
         /// </summary>
         public string Pin { get; set; } = string.Empty;
 
         /// <summary>
-        /// Username for login (optional, defaults to email or staff ID)
+        /// Username for system login (optional)
         /// </summary>
         public string? Username { get; set; }
 
@@ -34,16 +66,6 @@ namespace COMP9034.Backend.Models
         /// Password hash for system login
         /// </summary>
         public string? PasswordHash { get; set; }
-
-        /// <summary>
-        /// Hourly rate
-        /// </summary>
-        public decimal HourlyRate { get; set; }
-
-        /// <summary>
-        /// Email address
-        /// </summary>
-        public string? Email { get; set; }
 
         /// <summary>
         /// Phone number
@@ -54,6 +76,7 @@ namespace COMP9034.Backend.Models
         /// Home address
         /// </summary>
         public string? Address { get; set; }
+
 
         /// <summary>
         /// Active status
@@ -73,15 +96,44 @@ namespace COMP9034.Backend.Models
         // Navigation properties
         public virtual ICollection<Event> Events { get; set; } = new List<Event>();
         public virtual ICollection<BiometricData> BiometricData { get; set; } = new List<BiometricData>();
+        public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
+        public virtual ICollection<Salary> Salaries { get; set; } = new List<Salary>();
+        public virtual ICollection<BiometricVerification> BiometricVerifications { get; set; } = new List<BiometricVerification>();
+
+        /// <summary>
+        /// Full name property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public string Name => $"{FirstName} {LastName}";
+
+        /// <summary>
+        /// Hourly rate property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public decimal HourlyRate
+        {
+            get => StandardPayRate;
+            set => StandardPayRate = value;
+        }
+
+        /// <summary>
+        /// Staff ID property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public int Id
+        {
+            get => StaffId;
+            set => StaffId = value;
+        }
 
         /// <summary>
         /// Determine role based on staff ID
         /// </summary>
         public string GetRoleFromId()
         {
-            if (Id >= 9000) return "admin";
-            if (Id >= 8000 && Id <= 8999) return "manager";
-            return "staff";
+            if (StaffId >= 9000) return "Admin";
+            if (StaffId >= 8000 && StaffId <= 8999) return "Manager";
+            return "Staff";
         }
     }
 }

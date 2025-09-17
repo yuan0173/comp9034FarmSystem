@@ -152,7 +152,7 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 // Verify staff exists and is active
-                var staff = await _context.Staffs.FindAsync(biometricData.StaffId);
+                var staff = await _context.Staff.FindAsync(biometricData.StaffId);
                 if (staff == null || !staff.IsActive)
                 {
                     return BadRequest(new { message = $"Staff ID {biometricData.StaffId} does not exist or has been disabled" });
@@ -182,7 +182,9 @@ namespace COMP9034.Backend.Controllers
                     return BadRequest(new { message = "Biometric template data cannot be empty" });
                 }
 
-                // Encrypt and store template data
+                // Generate salt + hash and store encrypted template data
+                biometricData.Salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+                biometricData.TemplateHash = ComputeTemplateHash(biometricData.TemplateData, biometricData.Salt);
                 biometricData.TemplateData = EncryptTemplateData(biometricData.TemplateData);
                 biometricData.CreatedAt = DateTime.UtcNow;
                 biometricData.UpdatedAt = DateTime.UtcNow;
@@ -252,12 +254,14 @@ namespace COMP9034.Backend.Controllers
                 // If new template data is provided, encrypt it
                 if (!string.IsNullOrWhiteSpace(biometricData.TemplateData))
                 {
+                    existingData.Salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+                    existingData.TemplateHash = ComputeTemplateHash(biometricData.TemplateData, existingData.Salt);
                     existingData.TemplateData = EncryptTemplateData(biometricData.TemplateData);
                 }
-
+                
                 existingData.BiometricType = biometricData.BiometricType;
                 existingData.UpdatedAt = DateTime.UtcNow;
-
+                
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"Updated biometric data: ID={id}");
@@ -447,6 +451,14 @@ namespace COMP9034.Backend.Controllers
             {
                 return encryptedData; // Return original data if decryption fails
             }
+        }
+
+        private string ComputeTemplateHash(string templateData, string? salt)
+        {
+            var bytes = Encoding.UTF8.GetBytes(((salt ?? string.Empty) + templateData));
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToBase64String(hash);
         }
 
         /// <summary>

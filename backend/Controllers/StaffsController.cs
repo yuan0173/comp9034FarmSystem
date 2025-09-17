@@ -35,6 +35,7 @@ namespace COMP9034.Backend.Controllers
         /// <param name="role">Role filter</param>
         /// <returns>Staff list</returns>
         [HttpGet]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<IEnumerable<Staff>>> GetStaffs(
             [FromQuery] int? limit = null,
             [FromQuery] int offset = 0,
@@ -43,14 +44,14 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var query = _context.Staffs.AsQueryable();
+                var query = _context.Staff.AsQueryable();
 
                 // Apply search filter
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    query = query.Where(s => s.Name.Contains(search) || 
+                    query = query.Where(s => (s.FirstName + " " + s.LastName).Contains(search) || 
                                            s.Email!.Contains(search) ||
-                                           s.Id.ToString().Contains(search));
+                                           s.StaffId.ToString().Contains(search));
                 }
 
                 // Apply role filter
@@ -62,8 +63,8 @@ namespace COMP9034.Backend.Controllers
                 // Only return active staff
                 query = query.Where(s => s.IsActive);
 
-                // Sort by ID
-                query = query.OrderBy(s => s.Id);
+                // Sort by StaffId
+                query = query.OrderBy(s => s.StaffId);
 
                 // Apply pagination
                 if (offset > 0)
@@ -98,7 +99,7 @@ namespace COMP9034.Backend.Controllers
         /// Get inactive (soft-deleted) staff members
         /// </summary>
         [HttpGet("inactive")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<IEnumerable<Staff>>> GetInactiveStaffs(
             [FromQuery] int? limit = null,
             [FromQuery] int offset = 0,
@@ -114,20 +115,20 @@ namespace COMP9034.Backend.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
-                if (currentUser?.GetRoleFromId() != "admin")
+                var currentUser = await _context.Staff.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId()?.ToLower() != "admin")
                 {
                     return Forbid("Only administrators can view inactive staff");
                 }
 
-                IQueryable<Staff> query = _context.Staffs;
+                IQueryable<Staff> query = _context.Staff;
 
                 // Apply search filter
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(s => s.Name.Contains(search) || 
+                    query = query.Where(s => (s.FirstName + " " + s.LastName).Contains(search) || 
                                            s.Email.Contains(search) ||
-                                           s.Id.ToString().Contains(search));
+                                           s.StaffId.ToString().Contains(search));
                 }
 
                 // Apply role filter
@@ -140,7 +141,7 @@ namespace COMP9034.Backend.Controllers
                 query = query.Where(s => !s.IsActive);
 
                 // Sort by ID
-                query = query.OrderBy(s => s.Id);
+                query = query.OrderBy(s => s.StaffId);
 
                 // Apply pagination
                 if (offset > 0)
@@ -175,7 +176,7 @@ namespace COMP9034.Backend.Controllers
         /// Restore a soft-deleted staff member
         /// </summary>
         [HttpPut("{id}/restore")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> RestoreStaff(int id)
         {
             try
@@ -187,14 +188,14 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Check if user is admin
-                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
-                if (currentUser?.GetRoleFromId() != "admin")
+                var currentUser = await _context.Staff.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId()?.ToLower() != "admin")
                 {
-                    return Forbid("只有管理员可以恢复员工账户");
+                    return StatusCode(403, new { message = "Only administrators can restore staff accounts" });
                 }
 
-                var staff = await _context.Staffs
-                    .FirstOrDefaultAsync(s => s.Id == id && !s.IsActive);
+                var staff = await _context.Staff
+                    .FirstOrDefaultAsync(s => s.StaffId == id && !s.IsActive);
 
                 if (staff == null)
                 {
@@ -208,10 +209,10 @@ namespace COMP9034.Backend.Controllers
 
                 // Log audit trail
                 var ipAddress = GetClientIpAddress();
-                await _auditService.LogAsync("Staffs", "RESTORE", staff.Id.ToString(),
-                    currentUserId.Value, ipAddress, $"Restored staff: {staff.Name}");
+                await _auditService.LogAsync("Staffs", "RESTORE", staff.StaffId.ToString(),
+                    currentUserId.Value, ipAddress, $"Restored staff: {staff.FirstName} {staff.LastName}");
 
-                _logger.LogInformation($"Staff restored by user {currentUserId}: ID={id}, Name={staff.Name}");
+                _logger.LogInformation($"Staff restored by user {currentUserId}: ID={id}, Name={staff.FirstName} {staff.LastName}");
                 return Ok(new { message = "员工账户已成功恢复" });
             }
             catch (Exception ex)
@@ -227,14 +228,15 @@ namespace COMP9034.Backend.Controllers
         /// <param name="id">Staff ID</param>
         /// <returns>Staff information</returns>
         [HttpGet("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<Staff>> GetStaff(int id)
         {
             try
             {
-                var staff = await _context.Staffs
-                    .Include(s => s.Events.OrderByDescending(e => e.TimeStamp).Take(10))
+                var staff = await _context.Staff
+                    .Include(s => s.Events.OrderByDescending(e => e.OccurredAt).Take(10))
                     .Include(s => s.BiometricData)
-                    .FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
+                    .FirstOrDefaultAsync(s => s.StaffId == id && s.IsActive);
 
                 if (staff == null)
                 {
@@ -254,76 +256,141 @@ namespace COMP9034.Backend.Controllers
         }
 
         /// <summary>
-        /// Create new staff member
+        /// Create new staff member with auto-generated ID based on role
         /// </summary>
-        /// <param name="staff">Staff information</param>
+        /// <param name="request">Staff creation request with role</param>
         /// <returns>Created staff information</returns>
         [HttpPost]
-        [Authorize]
-        public async Task<ActionResult<Staff>> PostStaff(Staff staff)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<Staff>> PostStaff([FromBody] StaffCreateRequest request)
         {
             try
             {
-                // Validate staff ID format
-                if (staff.Id <= 0)
-                {
-                    return BadRequest(new { message = "Staff ID must be a positive number" });
-                }
-
-                // Check if staff ID already exists
-                if (await _context.Staffs.AnyAsync(s => s.Id == staff.Id))
-                {
-                    return BadRequest(new { message = $"Staff ID {staff.Id} already exists" });
-                }
-
                 // Validate required fields
-                if (string.IsNullOrWhiteSpace(staff.Name))
+                if (string.IsNullOrWhiteSpace(request.FirstName))
                 {
-                    return BadRequest(new { message = "Staff name is required" });
+                    return BadRequest(new { message = "First name is required" });
+                }
+                if (string.IsNullOrWhiteSpace(request.LastName))
+                {
+                    return BadRequest(new { message = "Last name is required" });
+                }
+                if (string.IsNullOrWhiteSpace(request.Email))
+                {
+                    return BadRequest(new { message = "Email is required" });
+                }
+                if (string.IsNullOrWhiteSpace(request.Role))
+                {
+                    return BadRequest(new { message = "Role is required" });
                 }
 
-                if (string.IsNullOrWhiteSpace(staff.Pin) || staff.Pin.Length < 4)
+                // Validate role
+                var validRoles = new[] { "staff", "manager", "admin" };
+                if (!validRoles.Contains(request.Role.ToLower()))
                 {
-                    return BadRequest(new { message = "PIN must be at least 4 characters" });
+                    return BadRequest(new { message = "Role must be one of: staff, manager, admin" });
                 }
 
-                // Set default values
-                // 🎯 ID优先级：始终根据ID规则设置角色，确保数据一致性
-                staff.Role = staff.GetRoleFromId();
-                staff.CreatedAt = DateTime.UtcNow;
-                staff.UpdatedAt = DateTime.UtcNow;
-                staff.IsActive = true;
-
-                // Set default hourly rate if not provided
-                if (staff.HourlyRate <= 0)
+                // Create staff object and auto-generate ID
+                var staff = new Staff
                 {
-                    staff.HourlyRate = staff.Role switch
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Email = request.Email,
+                    Role = CapitalizeRole(request.Role.ToLower()),
+                    Phone = request.Phone,
+                    Address = request.Address,
+                    ContractType = request.ContractType ?? "Casual",
+                    StandardHoursPerWeek = request.StandardHoursPerWeek ?? GetDefaultHoursForRole(request.Role),
+                    IsActive = request.IsActive ?? true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    Pin = "0000" // Default PIN, will be updated by user
+                };
+
+                // Auto-generate StaffId based on role with retry logic
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    staff.StaffId = await GenerateStaffIdAsync(request.Role.ToLower());
+                    
+                    // Set default pay rates if not provided
+                    if (request.StandardPayRate.HasValue)
                     {
-                        "admin" => 50,
-                        "manager" => 35,
-                        _ => 25
-                    };
-                }
+                        staff.StandardPayRate = request.StandardPayRate.Value;
+                    }
+                    else
+                    {
+                        staff.StandardPayRate = GetDefaultPayRateForRole(staff.Role);
+                    }
 
-                _context.Staffs.Add(staff);
-                await _context.SaveChangesAsync();
+                    if (request.OvertimePayRate.HasValue)
+                    {
+                        staff.OvertimePayRate = request.OvertimePayRate.Value;
+                    }
+                    else
+                    {
+                        staff.OvertimePayRate = staff.StandardPayRate * 1.5m;
+                    }
+
+                    _context.Staff.Add(staff);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
 
                 // Log audit trail
                 var currentUserId = GetCurrentUserId();
                 var ipAddress = GetClientIpAddress();
                 if (currentUserId.HasValue)
                 {
-                    await _auditService.LogAsync("Staffs", "CREATE", staff.Id.ToString(), 
+                    await _auditService.LogAsync("Staffs", "CREATE", staff.StaffId.ToString(), 
                         currentUserId.Value, ipAddress, null, staff);
                 }
 
-                _logger.LogInformation($"Created new staff: ID={staff.Id}, Name={staff.Name}, Role={staff.Role}");
-                return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, staff);
+                _logger.LogInformation($"Created new staff: ID={staff.StaffId}, Name={staff.FirstName} {staff.LastName}, Role={staff.Role}");
+                return CreatedAtAction(nameof(GetStaff), new { id = staff.StaffId }, staff);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while creating staff");
                 return StatusCode(500, new { message = "Failed to create staff", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get next available staff ID for a role (preview only)
+        /// </summary>
+        /// <param name="role">Role: staff, manager, admin</param>
+        /// <returns>Next available ID</returns>
+        [HttpGet("next-id")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<object>> GetNextStaffId([FromQuery] string role)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(role))
+                {
+                    return BadRequest(new { message = "Role parameter is required" });
+                }
+
+                var validRoles = new[] { "staff", "manager", "admin" };
+                if (!validRoles.Contains(role.ToLower()))
+                {
+                    return BadRequest(new { message = "Role must be one of: staff, manager, admin" });
+                }
+
+                var nextId = await GenerateStaffIdAsync(role.ToLower());
+                return Ok(new { nextId = nextId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting next ID for role: {role}");
+                return StatusCode(500, new { message = "Failed to get next ID", error = ex.Message });
             }
         }
 
@@ -334,28 +401,30 @@ namespace COMP9034.Backend.Controllers
         /// <param name="staff">Updated staff information</param>
         /// <returns>Update result</returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> PutStaff(int id, Staff staff)
         {
-            if (id != staff.Id)
+            if (id != staff.StaffId)
             {
                 return BadRequest(new { message = "ID in path does not match ID in request body" });
             }
 
             try
             {
-                var existingStaff = await _context.Staffs.FindAsync(id);
+                var existingStaff = await _context.Staff.FindAsync(id);
                 if (existingStaff == null)
                 {
                     return NotFound(new { message = $"Staff with ID {id} not found" });
                 }
 
                 // Update fields
-                existingStaff.Name = staff.Name;
+                existingStaff.FirstName = staff.FirstName;
+                existingStaff.LastName = staff.LastName;
                 existingStaff.Pin = staff.Pin;
                 existingStaff.Email = staff.Email;
                 existingStaff.Phone = staff.Phone;
                 existingStaff.Address = staff.Address;
-                existingStaff.HourlyRate = staff.HourlyRate;
+                existingStaff.StandardPayRate = staff.StandardPayRate;
                 existingStaff.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -376,12 +445,12 @@ namespace COMP9034.Backend.Controllers
         /// <param name="id">Staff ID</param>
         /// <returns>Delete result</returns>
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteStaff(int id)
         {
             try
             {
-                var staff = await _context.Staffs.FindAsync(id);
+                var staff = await _context.Staff.FindAsync(id);
                 if (staff == null)
                 {
                     return NotFound(new { message = $"Staff with ID {id} not found" });
@@ -404,8 +473,8 @@ namespace COMP9034.Backend.Controllers
                 var targetStaffRole = staff.GetRoleFromId();
                 if (targetStaffRole == "admin")
                 {
-                    var adminCount = await _context.Staffs
-                        .Where(s => s.IsActive && s.Id >= 9000)  // Admin ID range
+                    var adminCount = await _context.Staff
+                        .Where(s => s.IsActive && s.StaffId >= 9000)  // Admin ID range
                         .CountAsync();
                     
                     if (adminCount <= 1)
@@ -415,10 +484,10 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // 3. 权限检查：只有管理员可以删除其他员工
-                var currentUser = await _context.Staffs.FindAsync(currentUserId.Value);
-                if (currentUser?.GetRoleFromId() != "admin")
+                var currentUser = await _context.Staff.FindAsync(currentUserId.Value);
+                if (currentUser?.GetRoleFromId()?.ToLower() != "admin")
                 {
-                    return Forbid("只有管理员可以删除员工账户");
+                    return StatusCode(403, new { message = "Only administrators can delete staff accounts" });
                 }
 
                 // Soft delete
@@ -428,10 +497,10 @@ namespace COMP9034.Backend.Controllers
 
                 // Log audit trail
                 var ipAddress = GetClientIpAddress();
-                await _auditService.LogAsync("Staffs", "DELETE", staff.Id.ToString(), 
-                    currentUserId.Value, ipAddress, $"Deleted staff: {staff.Name}");
+                await _auditService.LogAsync("Staffs", "DELETE", staff.StaffId.ToString(), 
+                    currentUserId.Value, ipAddress, $"Deleted staff: {staff.FirstName} {staff.LastName}");
 
-                _logger.LogInformation($"Staff deleted by user {currentUserId}: ID={id}, Name={staff.Name}");
+                _logger.LogInformation($"Staff deleted by user {currentUserId}: ID={id}, Name={staff.FirstName} {staff.LastName}");
                 return Ok(new { message = "员工已成功删除" });
             }
             catch (Exception ex)
@@ -441,50 +510,7 @@ namespace COMP9034.Backend.Controllers
             }
         }
 
-        /// <summary>
-        /// Verify staff PIN for authentication
-        /// </summary>
-        /// <param name="id">Staff ID</param>
-        /// <param name="pin">PIN code</param>
-        /// <returns>Verification result with staff information</returns>
-        [HttpPost("{id}/verify")]
-        public async Task<ActionResult> VerifyPin(int id, [FromBody] string pin)
-        {
-            try
-            {
-                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
-                
-                if (staff == null)
-                {
-                    return NotFound(new { message = "Staff does not exist or has been disabled" });
-                }
-
-                if (staff.Pin != pin)
-                {
-                    _logger.LogWarning($"Staff ID:{id} PIN verification failed");
-                    return Unauthorized(new { message = "Incorrect PIN" });
-                }
-
-                // Set role
-                staff.Role = staff.GetRoleFromId();
-
-                _logger.LogInformation($"Staff ID:{id} PIN verification successful");
-                return Ok(new { 
-                    message = "Verification successful", 
-                    staff = new {
-                        id = staff.Id,
-                        name = staff.Name,
-                        role = staff.Role,
-                        email = staff.Email
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error occurred during PIN verification: ID={id}");
-                return StatusCode(500, new { message = "Verification failed", error = ex.Message });
-            }
-        }
+        // PIN verification removed - use unified Email+Password authentication via /api/auth/login
 
         /// <summary>
         /// Quick clock in/out for staff
@@ -497,7 +523,7 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
+                var staff = await _context.Staff.FirstOrDefaultAsync(s => s.StaffId == id && s.IsActive);
                 if (staff == null)
                 {
                     return NotFound(new { message = "Staff not found or disabled" });
@@ -510,10 +536,10 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Check for recent duplicate entries (within 1 minute)
-                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
                 var recentEvent = await _context.Events
                     .Where(e => e.StaffId == id && e.EventType == eventType)
-                    .Where(e => e.TimeStamp.CompareTo(oneMinuteAgo) > 0)
+                    .Where(e => e.OccurredAt > oneMinuteAgo)
                     .FirstOrDefaultAsync();
 
                 if (recentEvent != null)
@@ -527,9 +553,9 @@ namespace COMP9034.Backend.Controllers
                     StaffId = id,
                     DeviceId = 1, // Default device
                     EventType = eventType,
-                    TimeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    OccurredAt = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow,
-                    Reason = $"Quick {eventType.ToLower()} via API"
+                    Notes = $"Quick {eventType.ToLower()} via API"
                 };
 
                 _context.Events.Add(newEvent);
@@ -539,8 +565,8 @@ namespace COMP9034.Backend.Controllers
                 return Ok(new { 
                     message = $"Clock {eventType.ToLower()} successful",
                     eventId = newEvent.EventId,
-                    timeStamp = newEvent.TimeStamp,
-                    staffName = staff.Name
+                    timeStamp = newEvent.OccurredAt,
+                    staffName = staff.FirstName + " " + staff.LastName
                 });
             }
             catch (Exception ex)
@@ -586,6 +612,110 @@ namespace COMP9034.Backend.Controllers
             }
 
             return Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        }
+
+        /// <summary>
+        /// Generate staff ID based on role with range allocation
+        /// </summary>
+        /// <param name="role">Role: staff, manager, admin</param>
+        /// <returns>Generated staff ID</returns>
+        private async Task<int> GenerateStaffIdAsync(string role)
+        {
+            int minId, maxId;
+
+            // Define ID ranges based on role
+            switch (role.ToLower())
+            {
+                case "staff":
+                    minId = 1000;
+                    maxId = 7999;
+                    break;
+                case "manager":
+                    minId = 8000;
+                    maxId = 8999;
+                    break;
+                case "admin":
+                    minId = 9000;
+                    maxId = 9999;
+                    break;
+                default:
+                    throw new ArgumentException($"Invalid role: {role}");
+            }
+
+            // Retry logic for concurrent conflicts
+            for (int retry = 0; retry < 3; retry++)
+            {
+                try
+                {
+                    // Find the next available ID in the range
+                    var maxExistingId = (await _context.Staff
+                        .Where(s => s.StaffId >= minId && s.StaffId <= maxId)
+                        .Select(s => (int?)s.StaffId)
+                        .MaxAsync()) ?? (minId - 1);
+
+                    var nextId = Math.Max(maxExistingId + 1, minId);
+
+                    if (nextId > maxId)
+                    {
+                        throw new InvalidOperationException($"No available IDs in {role} range ({minId}-{maxId})");
+                    }
+
+                    return nextId;
+                }
+                catch (Exception ex) when (retry < 2)
+                {
+                    _logger.LogWarning($"ID generation retry {retry + 1} for role {role}: {ex.Message}");
+                    await Task.Delay(100); // Brief delay before retry
+                }
+            }
+
+            throw new InvalidOperationException($"Failed to generate ID for role {role} after 3 retries");
+        }
+
+        /// <summary>
+        /// Get default pay rate based on role
+        /// </summary>
+        /// <param name="role">Staff role</param>
+        /// <returns>Default pay rate</returns>
+        private static decimal GetDefaultPayRateForRole(string role)
+        {
+            return role switch
+            {
+                "Admin" => 50.00m,
+                "Manager" => 35.00m,
+                "Staff" => 25.00m,
+                _ => 25.00m
+            };
+        }
+
+        /// <summary>
+        /// Get default hours per week based on role
+        /// </summary>
+        /// <param name="role">Staff role</param>
+        /// <returns>Default hours per week</returns>
+        private static int GetDefaultHoursForRole(string role)
+        {
+            return role.ToLower() switch
+            {
+                "admin" => 40,
+                "manager" => 40,
+                _ => 20 // Casual staff default to part-time
+            };
+        }
+
+        /// <summary>
+        /// Capitalize role name for consistency
+        /// </summary>
+        /// <param name="role">Role in lowercase</param>
+        /// <returns>Capitalized role</returns>
+        private static string CapitalizeRole(string role)
+        {
+            return role.ToLower() switch
+            {
+                "admin" => "Admin",
+                "manager" => "Manager",
+                _ => "Staff"
+            };
         }
 
         #endregion
