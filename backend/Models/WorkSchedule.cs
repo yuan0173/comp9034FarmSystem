@@ -41,6 +41,11 @@ namespace COMP9034.Backend.Models
         public string Status { get; set; } = "Scheduled";
 
         /// <summary>
+        /// Scheduled hours duration (persistent field for Tan architecture)
+        /// </summary>
+        public decimal ScheduleHours { get; set; } = 0;
+
+        /// <summary>
         /// Additional notes or comments
         /// </summary>
         public string? Notes { get; set; }

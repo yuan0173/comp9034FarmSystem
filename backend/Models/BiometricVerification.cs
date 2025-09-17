@@ -28,6 +28,11 @@ namespace COMP9034.Backend.Models
         public int? EventId { get; set; }
 
         /// <summary>
+        /// Biometric template ID used for matching (optional if no match)
+        /// </summary>
+        public int? BiometricId { get; set; }
+
+        /// <summary>
         /// Verification result: 'Success', 'Failed', 'Error'
         /// </summary>
         [Required]
@@ -63,6 +68,11 @@ namespace COMP9034.Backend.Models
         /// Related event (clock in/out)
         /// </summary>
         public virtual Event? Event { get; set; }
+
+        /// <summary>
+        /// Related biometric template used for the verification
+        /// </summary>
+        public virtual BiometricData? Biometric { get; set; }
 
         // Computed properties
         /// <summary>

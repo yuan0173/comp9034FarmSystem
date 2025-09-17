@@ -41,6 +41,20 @@ interface AdminStaffsProps {
   currentUser: CurrentUser
 }
 
+type StaffForm = {
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  phone?: string
+  address?: string
+  contractType: string
+  standardPayRate: string
+  overtimePayRate: string
+  standardHoursPerWeek: string
+  isActive: boolean
+} & Partial<{ id: number; name: string; hourlyRate: string }>
+
 export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
@@ -53,7 +67,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
   const [deletingStaff, setDeletingStaff] = useState<Staff | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<StaffForm>({
     firstName: '',
     lastName: '',
     email: '',
@@ -69,10 +83,10 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   
   // TypeScript state variables matching your provided code
-  const [emailTimer, setEmailTimer] = useState<NodeJS.Timeout | null>(null)
+  const [emailTimer, setEmailTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [autoOvertimeEnabled, setAutoOvertimeEnabled] = useState(true)
   const [userTouchedStandardPay, setUserTouchedStandardPay] = useState(false)
-  const [userTouchedOvertimePay, setUserTouchedOvertimePay] = useState(false)
+  const [, setUserTouchedOvertimePay] = useState(false)
   const [addAnother, setAddAnother] = useState(false)
   
   const queryClient = useQueryClient()
@@ -82,7 +96,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const BASE_URL = 'http://localhost:4000'
   const TOKEN_KEY = 'authToken'
   const token = localStorage.getItem(TOKEN_KEY)
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
   // API functions exactly matching your TypeScript code
   async function searchStaffs(keyword: string, includeInactive: boolean = true): Promise<Staff[]> {
@@ -167,7 +181,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         defaultHours = 40
     }
     
-    setFormData(prev => ({ ...prev, standardHoursPerWeek: defaultHours }))
+    setFormData(prev => ({ ...prev, standardHoursPerWeek: String(defaultHours) }))
   }
 
   function updateOvertimeRate(): void {
@@ -182,31 +196,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     }
   }
 
-  function toggleOvertimeCalculation(): void {
-    setAutoOvertimeEnabled(prev => !prev)
-    if (!autoOvertimeEnabled) {
-      updateOvertimeRate()
-    }
-  }
-
-  function checkOvertimeRate(): void {
-    const standardRate = parseFloat(formData.standardPayRate)
-    const overtimeRate = parseFloat(formData.overtimePayRate)
-    
-    if (standardRate && overtimeRate) {
-      if (overtimeRate < standardRate) {
-        setFormErrors(prev => ({
-          ...prev,
-          overtimePayRate: 'Overtime rate is less than standard rate'
-        }))
-      } else {
-        setFormErrors(prev => ({
-          ...prev,
-          overtimePayRate: ''
-        }))
-      }
-    }
-  }
+  // Removed unused helpers to satisfy noUnusedLocals TS rule
 
 
 
@@ -346,7 +336,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   }
 
 
-  const validateForm = (isEditing = false) => {
+  const validateForm = () => {
     const errors: Record<string, string> = {}
     
     // Name validation
@@ -393,7 +383,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
 
   const handleSubmit = async () => {
     const isEditing = editingStaff !== null
-    if (!validateForm(isEditing)) return
+    if (!validateForm()) return
     
     if (isEditing) {
       // Update existing staff
@@ -857,7 +847,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
+                      <TableCell>{staff.contractType || (staff as any).ContractType || 'Casual'}</TableCell>
                       <TableCell>
                         ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                       </TableCell>
@@ -948,7 +938,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                             color="default"
                           />
                         </TableCell>
-                        <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
+                        <TableCell>{staff.contractType || (staff as any).ContractType || 'Casual'}</TableCell>
                         <TableCell>
                           ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                         </TableCell>
@@ -1383,7 +1373,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     // Auto-update overtime rate if enabled
                     if (autoOvertimeEnabled && value) {
                       const overtimeRate = (parseFloat(value) * 1.5).toFixed(2)
-                      setFormData(prev => ({ ...prev, standardPayRate: value, overtimePayRate }))
+                      setFormData(prev => ({ ...prev, standardPayRate: value, overtimePayRate: overtimeRate }))
                     }
                   }}
                   error={!!formErrors.standardPayRate}

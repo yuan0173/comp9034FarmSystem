@@ -48,11 +48,12 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.Phone).HasMaxLength(20);
                 entity.Property(e => e.Address).HasMaxLength(500);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 entity.HasIndex(e => e.Email).IsUnique();
-                entity.HasIndex(e => e.Username).IsUnique().HasFilter("[Username] IS NOT NULL");
+                // Unique when not null (PostgreSQL partial index syntax)
+                entity.HasIndex(e => e.Username).IsUnique().HasFilter("\"Username\" IS NOT NULL");
                 entity.HasIndex(e => e.Role);
                 entity.HasIndex(e => e.IsActive);
             });
@@ -65,7 +66,7 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.EventType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.OccurredAt).IsRequired();
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 // Staff relationship (optional for API flexibility)
                 entity.HasOne(d => d.Staff)
@@ -80,6 +81,16 @@ namespace COMP9034.Backend.Data
                     .HasForeignKey(d => d.DeviceId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .IsRequired(false);
+
+                // Admin (manual override performer)
+                entity.HasOne(d => d.Admin)
+                    .WithMany()
+                    .HasForeignKey(d => d.AdminId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+
+                // CHECK constraint for eventType includes MANUAL_OVERRIDE (PostgreSQL syntax)
+                entity.HasCheckConstraint("ck_events_type", "\"EventType\" IN ('CLOCK_IN','CLOCK_OUT','BREAK_START','BREAK_END','MANUAL_OVERRIDE')");
                 
                 // Indexes
                 entity.HasIndex(e => new { e.StaffId, e.OccurredAt });
@@ -97,8 +108,8 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.Location).HasMaxLength(200);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Active");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 entity.HasIndex(e => e.DeviceName).IsUnique();
                 entity.HasIndex(e => e.Status);
@@ -157,10 +168,11 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.ScheduledDate).IsRequired();
                 entity.Property(e => e.StartTime).IsRequired();
                 entity.Property(e => e.EndTime).IsRequired();
+                entity.Property(e => e.ScheduleHours).HasColumnType("decimal(8,2)").HasDefaultValue(0);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Scheduled");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 entity.HasOne(d => d.Staff)
                     .WithMany(p => p.WorkSchedules)
@@ -185,8 +197,8 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.OvertimePay).HasColumnType("decimal(10,2)").HasDefaultValue(0);
                 entity.Property(e => e.GrossPay).HasColumnType("decimal(10,2)").HasDefaultValue(0);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Draft");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 entity.HasOne(d => d.Staff)
                     .WithMany(p => p.Salaries)
@@ -205,7 +217,7 @@ namespace COMP9034.Backend.Data
                 entity.Property(e => e.VerificationResult).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.ConfidenceScore).HasColumnType("decimal(5,3)");
                 entity.Property(e => e.FailureReason).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
                 
                 entity.HasOne(d => d.Staff)
                     .WithMany(p => p.BiometricVerifications)
@@ -224,10 +236,25 @@ namespace COMP9034.Backend.Data
                     .HasForeignKey(d => d.EventId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired(false);
+
+                entity.HasOne(d => d.Biometric)
+                    .WithMany()
+                    .HasForeignKey(d => d.BiometricId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
                 
                 entity.HasIndex(e => e.StaffId);
                 entity.HasIndex(e => e.EventId);
                 entity.HasIndex(e => e.VerificationResult);
+            });
+
+            // BiometricData additions for security fields
+            modelBuilder.Entity<BiometricData>(entity =>
+            {
+                entity.Property<string?>("Salt");
+                entity.Property<string?>("TemplateHash");
+                entity.Property<int?>("DeviceEnrollment");
+                entity.HasIndex("TemplateHash");
             });
 
             // Seed data disabled - using migrated database with existing data

@@ -25,6 +25,11 @@ namespace COMP9034.Backend.Models
         /// </summary>
         public string TemplateData { get; set; } = string.Empty;
 
+        // Security enhancements (Tan schema)
+        public string? Salt { get; set; }
+        public string? TemplateHash { get; set; }
+        public int? DeviceEnrollment { get; set; }
+
         /// <summary>
         /// Active status
         /// </summary>
