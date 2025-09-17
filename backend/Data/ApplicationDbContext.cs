@@ -257,8 +257,8 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex("TemplateHash");
             });
 
-            // Seed data disabled - using migrated database with existing data
-            // SeedData(modelBuilder);
+            // Seed data for production deployment
+            SeedData(modelBuilder);
         }
 
         /// <summary>
