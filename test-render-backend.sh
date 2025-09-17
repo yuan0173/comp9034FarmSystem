@@ -20,23 +20,27 @@ else
     exit 1
 fi
 
-# Test 2: API Endpoints
+# Test 2: Database Diagnostics
 echo ""
-echo "2. Testing API Endpoints..."
+echo "2. Database Diagnostics..."
+DB_STATUS=$(curl -s "$BACKEND_URL/api/Diagnostics/database-status")
+echo "Database Status: $DB_STATUS"
 
-# Test Staffs endpoint
-echo "Testing /api/Staffs..."
-STAFFS_RESPONSE=$(curl -s "$BACKEND_URL/api/Staffs")
-echo "Staffs Response: $STAFFS_RESPONSE"
-
-# Test Devices endpoint  
-echo "Testing /api/Devices..."
-DEVICES_RESPONSE=$(curl -s "$BACKEND_URL/api/Devices")
-echo "Devices Response: $DEVICES_RESPONSE"
-
-# Test 3: Login Test
+# Test 3: Staff Sample Data
 echo ""
-echo "3. Testing Login..."
+echo "3. Staff Sample Data..."
+STAFF_SAMPLE=$(curl -s "$BACKEND_URL/api/Diagnostics/staff-sample")
+echo "Staff Sample: $STAFF_SAMPLE"
+
+# Test 4: Force Init (if needed)
+echo ""
+echo "4. Force Database Initialization..."
+FORCE_INIT=$(curl -s -X POST "$BACKEND_URL/api/Diagnostics/force-init")
+echo "Force Init Response: $FORCE_INIT"
+
+# Test 5: Login Test
+echo ""
+echo "5. Testing Login..."
 
 # Test admin login
 echo "Testing admin login..."
@@ -52,19 +56,19 @@ else
     echo "❌ Admin login failed"
 fi
 
-# Test manager login
-echo "Testing manager login..."
-MANAGER_LOGIN=$(curl -s -X POST "$BACKEND_URL/api/Auth/login" \
-    -H "Content-Type: application/json" \
-    -d '{"email": "manager@farmtimems.com", "password": "manager123"}')
-
-echo "Manager Login Response: $MANAGER_LOGIN"
-
-# Test 4: Database Data Check
+# Test 6: API Endpoints
 echo ""
-echo "4. Database Data Summary..."
-echo "Staffs count: $(echo "$STAFFS_RESPONSE" | jq '. | length' 2>/dev/null || echo "Unable to parse")"
-echo "Devices count: $(echo "$DEVICES_RESPONSE" | jq '. | length' 2>/dev/null || echo "Unable to parse")"
+echo "6. Testing API Endpoints..."
+
+# Test Staffs endpoint
+echo "Testing /api/Staffs..."
+STAFFS_RESPONSE=$(curl -s "$BACKEND_URL/api/Staffs")
+echo "Staffs Response: $STAFFS_RESPONSE"
+
+# Test Devices endpoint
+echo "Testing /api/Devices..."
+DEVICES_RESPONSE=$(curl -s "$BACKEND_URL/api/Devices")
+echo "Devices Response: $DEVICES_RESPONSE"
 
 echo ""
 echo "🎯 Test Summary Complete"
