@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Text;
 using COMP9034.Backend.Data;
 using COMP9034.Backend.Services;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,14 +25,47 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// Configure database context
+// Configure database context - Unified PostgreSQL for all environments
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // Use SQLite for all environments (development and production)
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-        ?? builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=./Data/farmtimems-dev.db";
-    options.UseSqlite(connectionString);
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+    // Fallback for local development if env not set
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        // Default local dev connection (Docker postgres suggested)
+        databaseUrl = "postgres://devuser:devpass@localhost:5432/farmtimems";
+    }
+
+    // Convert postgres:// URL to Npgsql connection string
+    string BuildNpgsqlConnectionString(string url)
+    {
+        // Accept both URL and already-built connection strings
+        if (!url.Contains("://")) return url;
+
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':');
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "",
+            Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "",
+            Database = uri.AbsolutePath.TrimStart('/')
+        };
+
+        // Render & many managed PG require SSL
+        if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production")
+        {
+            builder.SslMode = SslMode.Require;
+            builder.TrustServerCertificate = true;
+        }
+
+        return builder.ConnectionString;
+    }
+
+    var npgsqlCs = BuildNpgsqlConnectionString(databaseUrl!);
+    options.UseNpgsql(npgsqlCs);
 });
 
 // Register services
@@ -73,6 +109,32 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// Configure forwarded headers for real IP address detection
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    
+    // Allow all private network ranges for development
+    if (builder.Environment.IsDevelopment())
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        options.ForwardedForHeaderName = "X-Forwarded-For";
+        options.ForwardedProtoHeaderName = "X-Forwarded-Proto";
+        
+        // Accept forwarded headers from any source in development
+        options.ForwardLimit = null;
+    }
+    else
+    {
+        // Production: Configure known proxies and networks
+        options.KnownProxies.Add(System.Net.IPAddress.Loopback);
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8));
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16));
+    }
+});
 
 // 🌟 Industry standard: Dynamic CORS configuration
 builder.Services.AddCors(options =>
@@ -168,18 +230,18 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Ensure database is created
+// Apply migrations automatically (safe for dev; for prod keep schema in sync)
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try 
+    try
     {
-        context.Database.EnsureCreated();
-        Console.WriteLine("✅ Database initialization successful");
+        context.Database.Migrate();
+        Console.WriteLine("✅ Database migration applied successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
+        Console.WriteLine($"❌ Database migration failed: {ex.Message}");
     }
 }
 
@@ -200,6 +262,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseForwardedHeaders(); // Must be early in the pipeline for IP forwarding
 app.UseRouting();
 app.UseCors("AllowFrontend");  // ✅ CORS must be before authentication, after routing
 app.UseAuthentication();

@@ -1,0 +1,5 @@
+Id,Name,Role,Pin,Username,PasswordHash,HourlyRate,Email,Phone,Address,IsActive,CreatedAt,UpdatedAt
+1001,"Farm Worker",staff,1001,worker,$2a$11$7gg2Z4Z8XnUoNjQ1HksNFOWoPWOeRD/9356yI6az3wKeCSl.bS06O,25,worker@farmtimems.com,NULL,NULL,1,"2025-08-28 06:37:32.530458","2025-08-28 06:37:32.530458"
+2001,"Test Worker",staff,2001,NULL,NULL,30,test@example.com,NULL,NULL,1,"2025-08-28 10:09:54.419658","2025-08-28 10:09:54.419658"
+8001,"Farm Manager",manager,8001,manager,$2a$11$O6mz.bG6.oHcLxlnCrfztOnH8FoaAitVEEQjGR9VKiBK2/wlqUzmi,35,manager@farmtimems.com,NULL,NULL,1,"2025-08-28 06:37:32.396433","2025-08-28 06:37:32.396433"
+9001,"System Administrator",admin,1234,admin,$2a$11$Q.oqItcfwVa/PPq6F4fgqOgymKkvS8JA6trA/yACabl5dyOKBIR/2,50,admin@farmtimems.com,NULL,NULL,1,"2025-08-28 06:37:32.26143","2025-08-28 06:37:32.26143"

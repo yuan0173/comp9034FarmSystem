@@ -40,12 +40,12 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var query = _context.Devices.AsQueryable();
+                var query = _context.Device.AsQueryable();
 
                 // Apply type filter
                 if (!string.IsNullOrWhiteSpace(type))
                 {
-                    query = query.Where(d => d.Type == type);
+                    query = query.Where(d => d.DeviceType == type);
                 }
 
                 // Apply status filter
@@ -64,7 +64,7 @@ namespace COMP9034.Backend.Controllers
                 query = query.Where(d => d.IsActive);
 
                 // Sort
-                query = query.OrderBy(d => d.Id);
+                query = query.OrderBy(d => d.DeviceId);
 
                 // Apply pagination
                 if (offset > 0)
@@ -99,9 +99,9 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var device = await _context.Devices
-                    .Include(d => d.Events.OrderByDescending(e => e.TimeStamp).Take(10))
-                    .FirstOrDefaultAsync(d => d.Id == id && d.IsActive);
+                var device = await _context.Device
+                    .Include(d => d.Events.OrderByDescending(e => e.OccurredAt).Take(10))
+                    .FirstOrDefaultAsync(d => d.DeviceId == id && d.IsActive);
 
                 if (device == null)
                 {
@@ -128,16 +128,16 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 // Verify device name doesn't already exist
-                if (await _context.Devices.AnyAsync(d => d.Name == device.Name && d.IsActive))
+                if (await _context.Device.AnyAsync(d => d.DeviceName == device.DeviceName && d.IsActive))
                 {
-                    return BadRequest(new { message = $"Device name '{device.Name}' already exists" });
+                    return BadRequest(new { message = $"Device name '{device.DeviceName}' already exists" });
                 }
 
                 // Validate device type
                 var validTypes = new[] { "biometric", "terminal", "card_reader" };
-                if (!validTypes.Contains(device.Type))
+                if (!validTypes.Contains(device.DeviceType))
                 {
-                    return BadRequest(new { message = $"Invalid device type: {device.Type}. Valid types: {string.Join(", ", validTypes)}" });
+                    return BadRequest(new { message = $"Invalid device type: {device.DeviceType}. Valid types: {string.Join(", ", validTypes)}" });
                 }
 
                 // Validate device status
@@ -160,11 +160,11 @@ namespace COMP9034.Backend.Controllers
                 device.UpdatedAt = DateTime.UtcNow;
                 device.IsActive = true;
 
-                _context.Devices.Add(device);
+                _context.Device.Add(device);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Created new device: ID={device.Id}, Name={device.Name}, Type={device.Type}");
-                return CreatedAtAction(nameof(GetDevice), new { id = device.Id }, device);
+                _logger.LogInformation($"Created new device: ID={device.DeviceId}, Name={device.DeviceName}, Type={device.DeviceType}");
+                return CreatedAtAction(nameof(GetDevice), new { id = device.DeviceId }, device);
             }
             catch (Exception ex)
             {
@@ -182,30 +182,30 @@ namespace COMP9034.Backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutDevice(int id, Device device)
         {
-            if (id != device.Id)
+            if (id != device.DeviceId)
             {
                 return BadRequest(new { message = "ID in path does not match ID in request body" });
             }
 
             try
             {
-                var existingDevice = await _context.Devices.FindAsync(id);
+                var existingDevice = await _context.Device.FindAsync(id);
                 if (existingDevice == null)
                 {
                     return NotFound(new { message = $"Device with ID {id} not found" });
                 }
 
                 // Verify device name doesn't conflict with other devices
-                if (await _context.Devices.AnyAsync(d => d.Name == device.Name && d.Id != id && d.IsActive))
+                if (await _context.Device.AnyAsync(d => d.DeviceName == device.DeviceName && d.DeviceId != id && d.IsActive))
                 {
-                    return BadRequest(new { message = $"Device name '{device.Name}' already exists" });
+                    return BadRequest(new { message = $"Device name '{device.DeviceName}' already exists" });
                 }
 
                 // Validate device type
                 var validTypes = new[] { "biometric", "terminal", "card_reader" };
-                if (!validTypes.Contains(device.Type))
+                if (!validTypes.Contains(device.DeviceType))
                 {
-                    return BadRequest(new { message = $"Invalid device type: {device.Type}" });
+                    return BadRequest(new { message = $"Invalid device type: {device.DeviceType}" });
                 }
 
                 // Validate device status
@@ -225,8 +225,8 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Update fields
-                existingDevice.Name = device.Name;
-                existingDevice.Type = device.Type;
+                existingDevice.DeviceName = device.DeviceName;
+                existingDevice.DeviceType = device.DeviceType;
                 existingDevice.Location = device.Location;
                 existingDevice.Status = device.Status;
                 existingDevice.IpAddress = device.IpAddress;
@@ -254,7 +254,7 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var device = await _context.Devices.FindAsync(id);
+                var device = await _context.Device.FindAsync(id);
                 if (device == null)
                 {
                     return NotFound(new { message = $"Device with ID {id} not found" });
@@ -287,7 +287,7 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var device = await _context.Devices.FindAsync(id);
+                var device = await _context.Device.FindAsync(id);
                 if (device == null)
                 {
                     return NotFound(new { message = $"Device with ID {id} not found" });
@@ -305,7 +305,7 @@ namespace COMP9034.Backend.Controllers
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"Updated device status: ID={id}, Status={status}");
-                return Ok(new { message = "Device status updated successfully", device = new { device.Id, device.Name, device.Status } });
+                return Ok(new { message = "Device status updated successfully", device = new { device.DeviceId, device.DeviceName, device.Status } });
             }
             catch (Exception ex)
             {
@@ -323,14 +323,14 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var totalDevices = await _context.Devices.CountAsync(d => d.IsActive);
-                var activeDevices = await _context.Devices.CountAsync(d => d.IsActive && d.Status == "active");
-                var inactiveDevices = await _context.Devices.CountAsync(d => d.IsActive && d.Status == "inactive");
-                var maintenanceDevices = await _context.Devices.CountAsync(d => d.IsActive && d.Status == "maintenance");
+                var totalDevices = await _context.Device.CountAsync(d => d.IsActive);
+                var activeDevices = await _context.Device.CountAsync(d => d.IsActive && d.Status == "active");
+                var inactiveDevices = await _context.Device.CountAsync(d => d.IsActive && d.Status == "inactive");
+                var maintenanceDevices = await _context.Device.CountAsync(d => d.IsActive && d.Status == "maintenance");
 
-                var devicesByType = await _context.Devices
+                var devicesByType = await _context.Device
                     .Where(d => d.IsActive)
-                    .GroupBy(d => d.Type)
+                    .GroupBy(d => d.DeviceType)
                     .Select(g => new { Type = g.Key, Count = g.Count() })
                     .ToListAsync();
 
@@ -362,7 +362,7 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
-                var device = await _context.Devices.FindAsync(id);
+                var device = await _context.Device.FindAsync(id);
                 if (device == null)
                 {
                     return NotFound(new { message = $"Device with ID {id} not found" });
@@ -378,8 +378,8 @@ namespace COMP9034.Backend.Controllers
 
                 var result = new
                 {
-                    deviceId = device.Id,
-                    deviceName = device.Name,
+                    deviceId = device.DeviceId,
+                    deviceName = device.DeviceName,
                     ipAddress = device.IpAddress,
                     isConnected = isConnected,
                     testTime = DateTime.UtcNow,

@@ -63,18 +63,16 @@ namespace COMP9034.Backend.Controllers
                 // Apply date range filter
                 if (startDate.HasValue)
                 {
-                    var startDateStr = startDate.Value.ToString("yyyy-MM-dd");
-                    query = query.Where(e => e.TimeStamp.CompareTo(startDateStr) >= 0);
+                    query = query.Where(e => e.OccurredAt >= startDate.Value.Date);
                 }
 
                 if (endDate.HasValue)
                 {
-                    var endDateStr = endDate.Value.ToString("yyyy-MM-dd");
-                    query = query.Where(e => e.TimeStamp.CompareTo(endDateStr) <= 0);
+                    query = query.Where(e => e.OccurredAt <= endDate.Value.Date.AddDays(1));
                 }
 
                 // Sort by timestamp descending
-                query = query.OrderByDescending(e => e.TimeStamp);
+                query = query.OrderByDescending(e => e.OccurredAt);
 
                 // Apply pagination
                 if (offset > 0)
@@ -168,7 +166,7 @@ namespace COMP9034.Backend.Controllers
             try
             {
                 // Validate staff exists
-                var staff = await _context.Staffs.FindAsync(eventRequest.StaffId);
+                var staff = await _context.Staff.FindAsync(eventRequest.StaffId);
                 if (staff == null)
                 {
                     return BadRequest(new { message = $"Staff with ID {eventRequest.StaffId} not found" });
@@ -177,7 +175,7 @@ namespace COMP9034.Backend.Controllers
                 // Validate device exists (if provided)
                 if (eventRequest.DeviceId > 0)
                 {
-                    var device = await _context.Devices.FindAsync(eventRequest.DeviceId);
+                    var device = await _context.Device.FindAsync(eventRequest.DeviceId);
                     if (device == null)
                     {
                         return BadRequest(new { message = $"Device with ID {eventRequest.DeviceId} not found" });
@@ -187,7 +185,7 @@ namespace COMP9034.Backend.Controllers
                 // Validate admin exists (if provided)
                 if (eventRequest.AdminId.HasValue)
                 {
-                    var admin = await _context.Staffs.FindAsync(eventRequest.AdminId.Value);
+                    var admin = await _context.Staff.FindAsync(eventRequest.AdminId.Value);
                     if (admin == null)
                     {
                         return BadRequest(new { message = $"Admin with ID {eventRequest.AdminId} not found" });
@@ -310,9 +308,9 @@ namespace COMP9034.Backend.Controllers
                     .Include(e => e.Staff)
                     .Include(e => e.Device)
                     .Where(e => e.StaffId == staffId && 
-                               e.TimeStamp.CompareTo(today) >= 0 && 
-                               e.TimeStamp.CompareTo(tomorrow) < 0)
-                    .OrderBy(e => e.TimeStamp)
+                               e.OccurredAt >= DateTime.Today && 
+                               e.OccurredAt < DateTime.Today.AddDays(1))
+                    .OrderBy(e => e.OccurredAt)
                     .Select(e => new
                     {
                         eventId = e.EventId,
