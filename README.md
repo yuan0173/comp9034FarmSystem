@@ -4,47 +4,70 @@ A comprehensive modern farm attendance and payroll management system with offlin
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Material-UI v5 + Vite + PWA
-- **Backend**: .NET 8 Web API + Entity Framework Core
-- **Database**: SQLite (Development) / SQL Server (Production)
-- **Authentication**: JWT Bearer Token + PIN/Password + Role-based Access Control
-- **Features**: Offline Support, Real-time Sync, Audit Logging, RESTful API with Swagger
+- **Frontend**: React 18 + TypeScript + Material-UI v5 + Vite + PWA + Zustand State Management
+- **Backend**: .NET 8 Web API + Entity Framework Core + Enterprise Architecture Pattern
+- **Database**: PostgreSQL (Production) / SQLite (Development)
+- **Authentication**: JWT Bearer Token + BCrypt + PIN/Password + Role-based Access Control
+- **Features**: Offline Support, Real-time Sync, Audit Logging, RESTful API with Swagger, Global Exception Handling
 
 ## Project Structure
 
 ```
 COMP9034-FarmTimeMS/
 ├── frontendWebsite/          # React + TypeScript frontend
-│   ├── src/
+│   ├── src/                  # Source code
 │   │   ├── components/       # Reusable UI components
 │   │   ├── pages/           # Application pages/views
 │   │   ├── api/             # API client and HTTP utilities
 │   │   ├── hooks/           # Custom React hooks
+│   │   ├── stores/          # Zustand state management
 │   │   ├── offline/         # PWA offline functionality
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── utils/           # Utility functions
+│   ├── build/               # Build output directory
+│   │   └── dist/            # Production build files
+│   ├── config/              # Configuration files
+│   ├── docs/                # Frontend-specific documentation
+│   ├── tests/               # Test files and utilities
 │   └── public/              # Static assets and PWA icons
 ├── backend/                  # .NET 8 Web API backend
-│   ├── Controllers/         # API controllers
-│   ├── Models/              # Entity models
-│   ├── Services/            # Business logic services
-│   ├── Data/                # Database context
-│   ├── DTOs/                # Data Transfer Objects
-│   ├── Middlewares/         # Custom middleware
-│   ├── Database/            # Migration scripts
-│   └── logs/                # Application logs
-├── docs/                    # Project documentation
-└── ai-docs/                 # AI-generated documentation
+│   ├── src/                  # Source code (enterprise structure)
+│   │   ├── Controllers/      # API controllers with authorization
+│   │   ├── Services/         # Business logic layer
+│   │   ├── Repositories/     # Data access layer (Repository Pattern)
+│   │   ├── Models/           # Entity models and domain objects
+│   │   ├── Data/             # EF Core DbContext and configurations
+│   │   ├── DTOs/             # Data Transfer Objects
+│   │   ├── Middlewares/      # Global exception handling
+│   │   └── Common/           # Shared utilities (Results/Exceptions)
+│   ├── tests/                # Test scripts and validation utilities
+│   ├── config/               # Configuration files (appsettings.json)
+│   ├── backup/               # Backup files
+│   ├── Database/             # SQL migration scripts
+│   ├── Program.cs            # Application entry point
+│   └── COMP9034-Backend.csproj
+├── docs/                     # Organized project documentation
+│   ├── analysis/             # Project analysis and understanding
+│   ├── architecture/         # Architecture and design documents
+│   ├── phases/               # Implementation phase records
+│   ├── development/          # Development standards and lessons
+│   └── guides/               # User guides and startup instructions
+├── testing/                  # Comprehensive testing framework
+│   ├── scripts/              # Test automation scripts
+│   ├── documentation/        # Testing guides and scenarios
+│   ├── security/             # Security testing documentation
+│   └── tools/                # Testing tools and utilities
+└── scripts/                  # Project utility scripts
 ```
 
 ## Server Configuration & Setup
 
 ### Environment Overview
 
-| Environment     | Frontend URL             | Backend URL                                | Database                     | Purpose                     |
-| --------------- | ------------------------ | ------------------------------------------ | ---------------------------- | --------------------------- |
-| **Development** | `http://localhost:3000+` | `http://localhost:4000`                    | SQLite (`farmtimems-dev.db`) | Local development & testing |
-| **Production**  | Cloud deployment         | `https://flindersdevops.azurewebsites.net` | Azure SQL Server             | Live deployment & usage     |
+| Environment     | Frontend URL             | Backend URL                                | Database                          | Purpose                     |
+| --------------- | ------------------------ | ------------------------------------------ | --------------------------------- | --------------------------- |
+| **Development** | `http://localhost:3000+` | `http://localhost:4000`                    | PostgreSQL (Docker: port 5434)   | Local development & testing |
+| **Production**  | Cloud deployment         | `https://flindersdevops.azurewebsites.net` | PostgreSQL (Azure/Render)         | Live deployment & usage     |
 
 **🔧 Smart Port Management Strategy:**
 
@@ -69,7 +92,8 @@ AllowedOrigins__0=https://your-domain.com
 
 - **Node.js 18+** (for frontend development)
 - **.NET 8 SDK** (for backend development)
-- **SQLite** (embedded database for development)
+- **Docker** (for PostgreSQL database)
+- **PostgreSQL** (production database - Docker setup provided)
 
 ### Development Server Setup
 
@@ -78,11 +102,14 @@ AllowedOrigins__0=https://your-domain.com
 **Best development experience with real-time code updates, no manual restart required:**
 
 ```bash
-# Terminal 1: Backend Hot Reload (dotnet watch)
-cd backend
-ASPNETCORE_ENVIRONMENT=Development dotnet watch run --urls=http://localhost:4000
+# Terminal 1: Start PostgreSQL Database (Docker)
+docker run --name postgres-farmtime -e POSTGRES_USER=devuser -e POSTGRES_PASSWORD=devpass -e POSTGRES_DB=farmtimems -p 5434:5432 -d postgres:15
 
-# Terminal 2: Frontend Hot Module Replacement (Vite HMR)
+# Terminal 2: Backend Hot Reload (dotnet watch)
+cd backend
+DATABASE_URL="postgres://devuser:devpass@localhost:5434/farmtimems" ASPNETCORE_ENVIRONMENT=Development dotnet watch run --urls=http://localhost:4000
+
+# Terminal 3: Frontend Hot Module Replacement (Vite HMR)
 cd frontendWebsite
 npm install
 npm run dev
@@ -251,13 +278,16 @@ r + Enter         # Vite manual restart
 
 ### Technical Excellence
 
+- **Enterprise Architecture**: Repository Pattern, Unit of Work, Service Layer separation
+- **Modern State Management**: Zustand for predictable state management
 - **Frontend-Backend Alignment**: Unified data models and naming conventions
 - **Complete Internationalization**: Full English localization across all components
 - **🔥 Hot Reload Development**: Backend `dotnet watch` + Frontend Vite HMR for 10x faster development
 - **🔧 Smart Port Management**: Dynamic port detection with automatic CORS configuration
 - **🌐 Environment-Aware Configuration**: Dynamic development/production environment handling
-- **Robust Error Handling**: Comprehensive global exception middleware
+- **Robust Error Handling**: Global exception middleware with structured ApiResult responses
 - **API Documentation**: Complete Swagger documentation with interactive examples
+- **Professional File Organization**: Enterprise-grade directory structure and naming conventions
 
 ## Test Accounts
 
@@ -349,19 +379,22 @@ r + Enter         # Vite manual restart
 **Frontend Application**
 
 - React 18 + TypeScript + Material-UI v5 + PWA
+- Zustand state management with modern patterns
 - Offline functionality with smart synchronization
 - Role-based interfaces and responsive design
 
 **Backend API**
 
-- .NET 8 Web API + Entity Framework Core
+- .NET 8 Web API + Entity Framework Core + Enterprise Architecture
+- Repository Pattern + Service Layer + Unit of Work
 - RESTful endpoints + JWT authentication + role-based authorization
 - Global exception handling and comprehensive logging
 
 **Database & Integration**
 
-- SQLite development database with comprehensive schema
-- Complete sample data and migration scripts
+- PostgreSQL production database with Docker development setup
+- Complete schema with enterprise-grade relationships
+- Automated database initialization and seeding
 - Frontend-backend alignment + unified error handling
 
 ## API Endpoints
@@ -401,18 +434,18 @@ r + Enter         # Vite manual restart
 
 ### Available Documentation
 
-- **API Documentation**: `http://localhost:4000` (Swagger UI)
-- **Project Analysis**: `docs/PROJECT_ANALYSIS.md`
-- **Backend Integration**: `docs/BACKEND_INTEGRATION.md`
-- **Setup Guide**: `docs/SETUP.md`
-- **Frontend Status**: `docs/FRONTEND_STATUS_REPORT.md`
+- API Documentation: `http://localhost:4000` (Swagger UI)
+- Project Analysis: `docs/analysis/PROJECT_ANALYSIS.md`
+- Backend Integration: `docs/architecture/BACKEND_INTEGRATION.md`
+- Startup Guide: `docs/guides/STARTUP_GUIDE.md`
+- Agents Guidelines: `docs/guides/AGENTS.md`
 - **AI Documentation**: `ai-docs/` folder (excluded from Git)
 
 ### Development Guides
 
-- **Frontend README**: `frontendWebsite/README.md`
-- **Backend README**: `backend/README.md`
-- **API Connection Guide**: `frontendWebsite/API-Connection-Documentation.md`
+- Frontend Guide: `frontendWebsite/README.md` (if present)
+- Startup Guide: `docs/guides/STARTUP_GUIDE.md`
+- API Connection Guide: `frontendWebsite/API-Connection-Documentation.md`
 
 ### Technical Implementation
 
@@ -448,21 +481,36 @@ r + Enter         # Vite manual restart
 
 ## Development Team
 
-- **Tian Yuan (Tim)**: Lead Developer + Scrum Master
+- **Tim Yuan**: Lead Developer + Software Architect + System Designer
 - **Zichun Zhang**: Developer
 - **Qiutong Li**: Developer
 
 ## Project Metrics
 
-- **Total Files**: 100+ source files
-- **Code Coverage**: Frontend & Backend fully functional
-- **Test Accounts**: 4 comprehensive test scenarios
-- **API Endpoints**: 15+ RESTful endpoints
-- **Database Tables**: 7+ entity models with relationships
+- **Total Files**: 150+ source files with enterprise organization
+- **Architecture**: Enterprise-grade with Repository Pattern, Service Layer, and clean separation
+- **Code Coverage**: Frontend & Backend fully functional with modern patterns
+- **Test Accounts**: 4 comprehensive test scenarios with role-based testing
+- **API Endpoints**: 15+ RESTful endpoints with full Swagger documentation
+- **Database Tables**: 7+ entity models with enterprise-grade relationships
+- **Documentation**: Comprehensive phase-based documentation with organized structure
+
+## Recent Major Improvements
+
+### Phase 1-4 Enterprise Transformation
+- **✅ Critical Fixes**: Database consistency, build errors, and deployment issues resolved
+- **✅ Architectural Improvements**: Repository Pattern, Service Layer, Unit of Work implementation
+- **✅ Enterprise Enhancements**: Global exception handling, audit logging, comprehensive testing
+- **✅ Frontend Modernization**: Zustand state management, TypeScript improvements, PWA optimization
+
+### File Structure Reorganization
+- **✅ Backend**: Organized into `src/`, `tests/`, `config/`, `backup/` directories
+- **✅ Frontend**: Structured with `build/`, `tests/`, `docs/`, `config/` separation
+- **✅ Documentation**: Categorized into `analysis/`, `architecture/`, `phases/`, `development/`, `guides/`
 
 ---
 
-**Project Status**: **Production Ready**
+**Project Status**: **Enterprise Production Ready**
 
-_Developed for COMP9034 DevOps and Enterprise Systems Project_  
-_Last Updated\*\*: August 2025_
+_Developed for COMP9034 DevOps and Enterprise Systems Project_
+_Last Updated: September 2025_

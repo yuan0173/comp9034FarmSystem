@@ -57,7 +57,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
     type: '',
     location: '',
     ipAddress: '',
-    status: 'active',
+    status: 'Active',
   })
   const [formErrors, setFormErrors] = useState<any>({})
 
@@ -119,7 +119,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
       type: '',
       location: '',
       ipAddress: '',
-      status: 'active',
+      status: 'Active',
     })
     setFormErrors({})
   }
@@ -168,7 +168,7 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
       type: device.type || '',
       location: device.location || '',
       ipAddress: device.ipAddress || '',
-      status: device.status || 'active',
+      status: device.status || 'Active',
     })
     setFormErrors({})
     setEditingDevice(device)
@@ -201,11 +201,11 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'online':
+      case 'Active':
         return 'success'
-      case 'offline':
+      case 'Inactive':
         return 'error'
-      case 'maintenance':
+      case 'Maintenance':
         return 'warning'
       default:
         return 'default'
@@ -218,10 +218,12 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
 
 
   const getDeviceStats = () => {
-    const online = devices.filter(d => d.status === 'online').length
-    const offline = devices.filter(d => d.status === 'offline').length
-    const maintenance = devices.filter(d => d.status === 'maintenance').length
-    return { online, offline, maintenance, total: devices.length }
+    const active = devices.filter(d => d.status === 'Active').length
+    const inactive = devices.filter(d => d.status === 'Inactive').length
+    const maintenance = devices.filter(
+      d => d.status === 'Maintenance'
+    ).length
+    return { active, inactive, maintenance, total: devices.length }
   }
 
   const stats = getDeviceStats()
@@ -246,20 +248,20 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
         <Card sx={{ minWidth: 120, flex: 1 }}>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="h4" color="success.main">
-              {stats.online}
+              {stats.active}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Online
+              Active
             </Typography>
           </CardContent>
         </Card>
         <Card sx={{ minWidth: 120, flex: 1 }}>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="h4" color="error.main">
-              {stats.offline}
+              {stats.inactive}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Offline
+              Inactive
             </Typography>
           </CardContent>
         </Card>
@@ -464,9 +466,9 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
                 label="Status"
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="maintenance">Maintenance</MenuItem>
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="Maintenance">Maintenance</MenuItem>
               </Select>
             </FormControl>
 
@@ -553,9 +555,9 @@ export function AdminDevices({ currentUser: _currentUser }: AdminDevicesProps) {
                 label="Status"
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="maintenance">Maintenance</MenuItem>
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="Maintenance">Maintenance</MenuItem>
               </Select>
             </FormControl>
 

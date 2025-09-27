@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   BrowserRouter as Router,
   Routes,
@@ -11,8 +11,12 @@ import { CssBaseline } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
+// Stores
+import { useUserStore, useAppStore, useTheme } from './stores'
+
 // Components
 import { AppShell } from './components/AppShell'
+import { LoadingSpinner, ErrorBoundary } from './components/ui'
 
 // Pages
 import { Login } from './pages/Login'
@@ -27,8 +31,7 @@ import { AdminEvents } from './pages/AdminEvents'
 import { AdminLoginHistory } from './pages/AdminLoginHistory'
 // All admin pages are now imported above
 
-// Types
-import { CurrentUser } from './types/api'
+// Types - imported for type definitions used in components
 
 // Offline functionality
 import { initDB } from './offline/db'
@@ -49,30 +52,33 @@ const queryClient = new QueryClient({
   },
 })
 
-// Create theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
+function App() {
+  // Zustand stores
+  const { currentUser, isLoading, isAuthenticated, login, logout, setLoading } = useUserStore()
+  const { setOnlineStatus } = useAppStore()
+  const themeMode = useTheme()
+
+  // Create theme based on store preference
+  const theme = createTheme({
+    palette: {
+      mode: themeMode,
+      primary: {
+        main: '#1976d2',
+      },
+      secondary: {
+        main: '#dc004e',
+      },
     },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+          },
         },
       },
     },
-  },
-})
-
-function App() {
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  })
 
   // Initialize app on mount
   useEffect(() => {
@@ -84,20 +90,18 @@ function App() {
         // Start auto sync for offline events
         startAutoSync()
 
-        // Load saved user from localStorage
-        const savedUser = localStorage.getItem('currentUser')
-        if (savedUser) {
-          try {
-            setCurrentUser(JSON.parse(savedUser))
-          } catch (error) {
-            console.error('Failed to parse saved user:', error)
-            localStorage.removeItem('currentUser')
-          }
-        }
+        // Set up online/offline listeners
+        const handleOnline = () => setOnlineStatus(true)
+        const handleOffline = () => setOnlineStatus(false)
+
+        window.addEventListener('online', handleOnline)
+        window.addEventListener('offline', handleOffline)
+
+        // User state is automatically loaded from localStorage via Zustand persist
+        setLoading(false)
       } catch (error) {
         console.error('Failed to initialize app:', error)
-      } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
 
@@ -106,64 +110,49 @@ function App() {
     // Cleanup on unmount
     return () => {
       stopAutoSync()
+      window.removeEventListener('online', () => setOnlineStatus(true))
+      window.removeEventListener('offline', () => setOnlineStatus(false))
     }
   }, [])
-
-  const handleLogin = (user: CurrentUser) => {
-    setCurrentUser(user)
-    localStorage.setItem('currentUser', JSON.stringify(user))
-  }
-
-  const handleLogout = () => {
-    setCurrentUser(null)
-    localStorage.removeItem('currentUser')
-  }
 
   // Show loading screen while initializing
   if (isLoading) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            fontSize: '1.2rem',
-            color: theme.palette.primary.main,
-          }}
-        >
-          Loading...
-        </div>
+        <LoadingSpinner
+          message="Initializing Farm Time Management System..."
+          fullScreen
+        />
       </ThemeProvider>
     )
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <QueryClientProvider client={queryClient}>
-          <Router basename="/comp9034FarmSystem">
-            <Routes>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <QueryClientProvider client={queryClient}>
+            <Router basename="/comp9034FarmSystem">
+              <Routes>
               {/* Login route */}
               <Route
                 path="/login"
                 element={
-                  currentUser ? (
+                  isAuthenticated ? (
                     <Navigate
                       to={
-                        currentUser.role === 'admin'
+                        currentUser?.role === 'admin'
                           ? '/admin/staffs'
-                          : currentUser.role === 'manager'
+                          : currentUser?.role === 'manager'
                             ? '/manager'
                             : '/station'
                       }
                       replace
                     />
                   ) : (
-                    <Login onLogin={handleLogin} />
+                    <Login onLogin={login} />
                   )
                 }
               />
@@ -172,12 +161,12 @@ function App() {
               <Route
                 path="/"
                 element={
-                  !currentUser ? (
+                  !isAuthenticated ? (
                     <Navigate to="/login" replace />
                   ) : (
                     <AppShell
                       currentUser={currentUser}
-                      onLogout={handleLogout}
+                      onLogout={logout}
                     />
                   )
                 }
@@ -300,11 +289,12 @@ function App() {
                   }
                 />
               </Route>
-            </Routes>
-          </Router>
-        </QueryClientProvider>
-      </LocalizationProvider>
-    </ThemeProvider>
+              </Routes>
+            </Router>
+          </QueryClientProvider>
+        </LocalizationProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
 
