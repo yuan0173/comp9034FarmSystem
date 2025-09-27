@@ -75,6 +75,10 @@ build/
 coverage/
 .nyc_output/
 
+# Frontend build artifacts
+frontendWebsite/build/
+frontendWebsite/dist/
+
 # OS generated files
 Thumbs.db
 

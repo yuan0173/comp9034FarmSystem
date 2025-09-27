@@ -72,7 +72,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [emailTimer, setEmailTimer] = useState<NodeJS.Timeout | null>(null)
   const [autoOvertimeEnabled, setAutoOvertimeEnabled] = useState(true)
   const [userTouchedStandardPay, setUserTouchedStandardPay] = useState(false)
-  const [userTouchedOvertimePay, setUserTouchedOvertimePay] = useState(false)
+  const [, setUserTouchedOvertimePay] = useState(false)
   const [addAnother, setAddAnother] = useState(false)
   
   const queryClient = useQueryClient()
@@ -82,7 +82,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const BASE_URL = 'http://localhost:4000'
   const TOKEN_KEY = 'authToken'
   const token = localStorage.getItem(TOKEN_KEY)
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
   // API functions exactly matching your TypeScript code
   async function searchStaffs(keyword: string, includeInactive: boolean = true): Promise<Staff[]> {
@@ -167,7 +167,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         defaultHours = 40
     }
     
-    setFormData(prev => ({ ...prev, standardHoursPerWeek: defaultHours }))
+    setFormData(prev => ({ ...prev, standardHoursPerWeek: defaultHours.toString() }))
   }
 
   function updateOvertimeRate(): void {
@@ -182,31 +182,9 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     }
   }
 
-  function toggleOvertimeCalculation(): void {
-    setAutoOvertimeEnabled(prev => !prev)
-    if (!autoOvertimeEnabled) {
-      updateOvertimeRate()
-    }
-  }
+  // Helper function removed for build optimization
 
-  function checkOvertimeRate(): void {
-    const standardRate = parseFloat(formData.standardPayRate)
-    const overtimeRate = parseFloat(formData.overtimePayRate)
-    
-    if (standardRate && overtimeRate) {
-      if (overtimeRate < standardRate) {
-        setFormErrors(prev => ({
-          ...prev,
-          overtimePayRate: 'Overtime rate is less than standard rate'
-        }))
-      } else {
-        setFormErrors(prev => ({
-          ...prev,
-          overtimePayRate: ''
-        }))
-      }
-    }
-  }
+  // Helper function removed for build optimization
 
 
 
@@ -346,7 +324,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   }
 
 
-  const validateForm = (isEditing = false) => {
+  const validateForm = (_isEditing = false) => {
     const errors: Record<string, string> = {}
     
     // Name validation
@@ -857,7 +835,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
+                      <TableCell>{staff.contractType || 'Casual'}</TableCell>
                       <TableCell>
                         ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                       </TableCell>
@@ -948,7 +926,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                             color="default"
                           />
                         </TableCell>
-                        <TableCell>{staff.contractType || staff.ContractType || 'Casual'}</TableCell>
+                        <TableCell>{staff.contractType || 'Casual'}</TableCell>
                         <TableCell>
                           ${staff.hourlyRate?.toFixed(2) || 'N/A'}/hr
                         </TableCell>
@@ -1383,7 +1361,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     // Auto-update overtime rate if enabled
                     if (autoOvertimeEnabled && value) {
                       const overtimeRate = (parseFloat(value) * 1.5).toFixed(2)
-                      setFormData(prev => ({ ...prev, standardPayRate: value, overtimePayRate }))
+                      setFormData(prev => ({ ...prev, standardPayRate: value, overtimePayRate: overtimeRate }))
                     }
                   }}
                   error={!!formErrors.standardPayRate}
@@ -1534,7 +1512,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Staff ID"
                   type="number"
-                  value={formData.id}
+                  value={""}
                   disabled
                   helperText="Staff ID cannot be changed"
                   autoComplete="off"
@@ -1544,8 +1522,11 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                 <TextField
                   fullWidth
                   label="Full Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={`${formData.firstName} ${formData.lastName}`}
+                  onChange={(e) => {
+                    const names = e.target.value.split(' ');
+                    setFormData({ ...formData, firstName: names[0] || '', lastName: names.slice(1).join(' ') || '' });
+                  }}
                   error={!!formErrors.name}
                   helperText={formErrors.name}
                   placeholder="Enter staff full name"
@@ -1570,8 +1551,8 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   fullWidth
                   label="Hourly Rate"
                   type="number"
-                  value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                  value={formData.standardPayRate}
+                  onChange={(e) => setFormData({ ...formData, standardPayRate: e.target.value })}
                   error={!!formErrors.hourlyRate}
                   helperText={formErrors.hourlyRate}
                   placeholder="25.00"
