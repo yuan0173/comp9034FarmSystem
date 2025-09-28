@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/comp9034FarmSystem/',
     build: {
-      outDir: 'build/dist',
+      outDir: 'dist',
     },
     plugins: [
       react(),
