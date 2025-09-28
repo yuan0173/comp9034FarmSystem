@@ -135,7 +135,176 @@ public interface IUnitOfWork : IDisposable
 
 ## 📝 Code Standards
 
-### 1. Naming Conventions
+### 1. Code Comment Standards
+
+#### Comment Format Guidelines
+
+**English-Only Code Comments**: All code comments must be written in English for consistency across international development teams.
+
+#### Bug Fix Comment Format
+
+**Detailed Bug Fix Header:**
+```csharp
+// =================================================================
+// Bug Fix: [Descriptive title of the bug fix]
+// Developer: [Developer Name]
+// Date: [YYYY-MM-DD]
+// Description: [Detailed description of what was fixed]
+// Issue: [Description of the original problem]
+// Bug Reference: Bug #[number] or Issue #[number]
+// =================================================================
+```
+
+**Examples:**
+```csharp
+// =================================================================
+// Bug Fix: Staff Dropdown Selection Issue
+// Developer: Tim Yuan
+// Date: 2025-09-28
+// Description: Convert StaffId to string for proper dropdown selection
+// Issue: Dropdown fails to preselect staff when editing shifts
+// Bug Reference: Bug #2
+// =================================================================
+public async Task<IActionResult> UpdateStaff(int id, UpdateStaffRequest request)
+{
+    // Implementation
+}
+```
+
+**Inline Bug Fix Comments:**
+```csharp
+// Bug Fix (Bug #2): Add null check for safer event listener attachment
+if (element != null)
+{
+    element.addEventListener("change", handleChange);
+}
+```
+
+#### Feature Addition Comment Format
+
+```csharp
+// Add: [Brief description of new functionality]
+public class NewFeatureService
+{
+    // Add: Employee search functionality with real-time filtering
+    public async Task<List<Employee>> SearchEmployeesAsync(string searchTerm)
+    {
+        // Implementation
+    }
+}
+```
+
+#### Enhancement Comment Format
+
+```csharp
+// Update: [Brief description of improvement]
+public class OptimizedService
+{
+    // Update: Improve performance with lazy loading and caching
+    public async Task<IEnumerable<Data>> GetDataAsync()
+    {
+        // Implementation
+    }
+}
+```
+
+#### Temporary Code Comment Format
+
+```csharp
+// Temporary: [Purpose] - Remove before production deployment
+[HttpPost("test-validation")]
+[AllowAnonymous] // Temporary: Test endpoint - Remove before production deployment
+public async Task<IActionResult> TestValidation()
+{
+    // Implementation
+}
+```
+
+#### Comment Placement Guidelines
+
+**Function-Level Comments:**
+```csharp
+// Fix: Ensure proper staff selection validation (Bug #2)
+public async Task<bool> ValidateStaffSelectionAsync(int staffId)
+{
+    // Implementation
+}
+```
+
+**Block Comments for Complex Logic:**
+```csharp
+/**
+ * Fix: Implement safe database transaction handling (Bug #3)
+ * Adds proper transaction rollback to prevent data corruption
+ * This addresses concurrent access issues in multi-user scenarios
+ */
+using var transaction = await _context.Database.BeginTransactionAsync();
+try
+{
+    // Transaction logic
+    await transaction.CommitAsync();
+}
+catch
+{
+    await transaction.RollbackAsync();
+    throw;
+}
+```
+
+### 2. Git Commit Message Standards
+
+#### Commit Prefixes
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation updates
+- `style:` - Code formatting changes
+- `refactor:` - Code restructuring without functional changes
+- `perf:` - Performance improvements
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks, build updates
+
+#### Commit Message Format
+```
+[prefix]: [concise description of change]
+
+[optional detailed description]
+
+[optional footer with references]
+```
+
+#### Commit Message Examples
+```bash
+feat: add staff photo upload functionality to admin panel
+fix: resolve JWT token expiration handling in authentication service
+docs: update API documentation for biometric endpoints
+refactor: extract common database repository patterns
+perf: optimize dashboard loading with lazy loading and caching
+
+# With detailed description
+feat: implement real-time attendance tracking
+
+Add WebSocket-based real-time updates for attendance status.
+Includes automatic clock-in/out detection and manager notifications.
+
+Closes #45, References #67
+```
+
+#### Prohibited Practices in Git Commits
+
+**❌ What NOT to Include:**
+- Chinese comments in commit messages
+- AI tool identity markers (Claude, ChatGPT, etc.)
+- Auto-generated signatures
+- Personal information unrelated to code changes
+
+**✅ Good Examples:**
+```bash
+fix: staff dropdown now shows default selection correctly (Bug #2)
+feat: add employee photo upload with validation and resizing
+refactor: consolidate API error handling across all controllers
+```
+
+### 3. Naming Conventions
 
 #### C# Backend
 ```csharp
@@ -484,6 +653,13 @@ builder.Services.AddLogging();
   - [ ] Input sanitization implemented
   - [ ] Authentication/authorization properly configured
   - [ ] No sensitive data in logs
+
+- [ ] **Code Comments & Git Standards**
+  - [ ] All comments written in English
+  - [ ] Bug fixes include proper reference headers
+  - [ ] Git commit messages follow prefix standards
+  - [ ] No AI tool identity markers in commits
+  - [ ] Temporary code clearly marked for removal
 
 ### Performance Checklist
 - [ ] **Database Optimization**
