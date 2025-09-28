@@ -98,6 +98,9 @@ backend/.vs/
 # AI Assistant Generated Documentation
 ai-docs/
 
+# Claude Code Documentation and Configuration
+claude/
+
 # Backend organized folders
 backend/logs/
 backend/scripts/*.backup
