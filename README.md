@@ -46,12 +46,14 @@ COMP9034-FarmTimeMS/
 │   ├── Database/             # SQL migration scripts
 │   ├── Program.cs            # Application entry point
 │   └── COMP9034-Backend.csproj
-├── docs/                     # Organized project documentation
-│   ├── analysis/             # Project analysis and understanding
-│   ├── architecture/         # Architecture and design documents
-│   ├── phases/               # Implementation phase records
-│   ├── development/          # Development standards and lessons
-│   └── guides/               # User guides and startup instructions
+├── claude/                   # Development documentation (git ignored)
+│   ├── CLAUDE.md             # Development configuration and workflows
+│   └── docs/                 # Organized project documentation
+│       ├── analysis/         # Project analysis and understanding
+│       ├── architecture/     # Architecture and design documents
+│       ├── phases/           # Implementation phase records
+│       ├── development/      # Development standards and lessons
+│       └── guides/           # User guides and startup instructions
 ├── testing/                  # Comprehensive testing framework
 │   ├── scripts/              # Test automation scripts
 │   ├── documentation/        # Testing guides and scenarios
@@ -434,18 +436,21 @@ r + Enter         # Vite manual restart
 
 ### Available Documentation
 
-- API Documentation: `http://localhost:4000` (Swagger UI)
-- Project Analysis: `docs/analysis/PROJECT_ANALYSIS.md`
-- Backend Integration: `docs/architecture/BACKEND_INTEGRATION.md`
-- Startup Guide: `docs/guides/STARTUP_GUIDE.md`
-- Agents Guidelines: `docs/guides/AGENTS.md`
-- **AI Documentation**: `ai-docs/` folder (excluded from Git)
+- **API Documentation**: `http://localhost:4000` (Swagger UI)
+- **Development Configuration**: `claude/CLAUDE.md` (local development only)
+- **Project Analysis**: `claude/docs/analysis/PROJECT_ANALYSIS.md`
+- **Backend Integration**: `claude/docs/architecture/BACKEND_INTEGRATION.md`
+- **Startup Guide**: `claude/docs/guides/STARTUP_GUIDE.md`
+- **Development Standards**: `claude/docs/development/DEVELOPMENT_STANDARDS_TEMPLATE.md`
+- **Git Conventions**: `claude/docs/development/GIT_BRANCH_NAMING_CONVENTIONS.md`
 
 ### Development Guides
 
-- Frontend Guide: `frontendWebsite/README.md` (if present)
-- Startup Guide: `docs/guides/STARTUP_GUIDE.md`
-- API Connection Guide: `frontendWebsite/API-Connection-Documentation.md`
+- **Frontend Guide**: `frontendWebsite/README.md` (if present)
+- **API Connection Guide**: `frontendWebsite/docs/API-Connection-Documentation.md`
+- **Testing Package**: `testing/README.md` (comprehensive testing framework)
+
+> **Note**: Development documentation is located in the `claude/` directory which is excluded from Git version control but available locally for development reference.
 
 ### Technical Implementation
 
@@ -506,7 +511,8 @@ r + Enter         # Vite manual restart
 ### File Structure Reorganization
 - **✅ Backend**: Organized into `src/`, `tests/`, `config/`, `backup/` directories
 - **✅ Frontend**: Structured with `build/`, `tests/`, `docs/`, `config/` separation
-- **✅ Documentation**: Categorized into `analysis/`, `architecture/`, `phases/`, `development/`, `guides/`
+- **✅ Documentation**: Reorganized into `claude/` directory (git-ignored) with categorized structure
+- **✅ Development Workflow**: Isolated development documentation from production codebase
 
 ---
 
