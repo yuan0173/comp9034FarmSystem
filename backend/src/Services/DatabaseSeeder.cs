@@ -40,94 +40,54 @@ namespace COMP9034.Backend.Services
 
         private async Task SeedStaffAsync()
         {
-            // Check if admin user exists
-            var adminExists = await _context.Staff.AnyAsync(s => s.Email == "admin@farmtimems.com");
-            if (!adminExists)
+            // Ensure-required staff accounts exist individually (idempotent)
+            var seeds = new List<(int id, string first, string last, string email, string role, decimal stdRate, decimal otRate, string contract, int hours, string password)>
             {
-                _logger.LogInformation("🔄 Creating admin users...");
+                (9001, "System", "Administrator", "admin@farmtimems.com", "Admin", 50.00m, 75.00m, "FullTime", 40, "admin123"),
+                (8001, "Farm",   "Manager",       "manager@farmtimems.com", "Manager", 35.00m, 52.50m, "FullTime", 40, "manager123"),
+                (1001, "Farm",   "Worker",        "worker@farmtimems.com",  "Staff",   25.00m, 37.50m, "Casual",   20, "worker123"),
+                (2001, "Test",   "Worker",        "test@example.com",       "Staff",   25.00m, 37.50m, "Casual",   20, "test123")
+            };
 
-                var staffToAdd = new List<Staff>
+            int created = 0;
+            foreach (var s in seeds)
+            {
+                var exists = await _context.Staff.AnyAsync(x => x.StaffId == s.id || x.Email == s.email);
+                if (exists)
                 {
-                    new Staff
-                    {
-                        StaffId = 9001,
-                        FirstName = "System",
-                        LastName = "Administrator",
-                        Email = "admin@farmtimems.com",
-                        Role = "Admin",
-                        StandardPayRate = 50.00m,
-                        OvertimePayRate = 75.00m,
-                        ContractType = "FullTime",
-                        StandardHoursPerWeek = 40,
-                        Pin = "9001",
-                        Username = null,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    },
-                    new Staff
-                    {
-                        StaffId = 8001,
-                        FirstName = "Farm",
-                        LastName = "Manager",
-                        Email = "manager@farmtimems.com",
-                        Role = "Manager",
-                        StandardPayRate = 35.00m,
-                        OvertimePayRate = 52.50m,
-                        ContractType = "FullTime",
-                        StandardHoursPerWeek = 40,
-                        Pin = "8001",
-                        Username = null,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("manager123"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    },
-                    new Staff
-                    {
-                        StaffId = 1001,
-                        FirstName = "Farm",
-                        LastName = "Worker",
-                        Email = "worker@farmtimems.com",
-                        Role = "Staff",
-                        StandardPayRate = 25.00m,
-                        OvertimePayRate = 37.50m,
-                        ContractType = "Casual",
-                        StandardHoursPerWeek = 20,
-                        Pin = "1001",
-                        Username = null,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("worker123"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    },
-                    new Staff
-                    {
-                        StaffId = 2001,
-                        FirstName = "Test",
-                        LastName = "Worker",
-                        Email = "test@example.com",
-                        Role = "Staff",
-                        StandardPayRate = 25.00m,
-                        OvertimePayRate = 37.50m,
-                        ContractType = "Casual",
-                        StandardHoursPerWeek = 20,
-                        Pin = "2001",
-                        Username = null,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    }
+                    continue;
+                }
+
+                var staff = new Staff
+                {
+                    StaffId = s.id,
+                    FirstName = s.first,
+                    LastName = s.last,
+                    Email = s.email,
+                    Role = s.role,
+                    StandardPayRate = s.stdRate,
+                    OvertimePayRate = s.otRate,
+                    ContractType = s.contract,
+                    StandardHoursPerWeek = s.hours,
+                    Pin = s.id.ToString(),
+                    Username = null,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(s.password),
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                await _context.Staff.AddRangeAsync(staffToAdd);
-                _logger.LogInformation("✅ Created {Count} staff members", staffToAdd.Count);
+                await _context.Staff.AddAsync(staff);
+                created++;
+            }
+
+            if (created > 0)
+            {
+                _logger.LogInformation("✅ Seeded {Count} missing staff accounts", created);
             }
             else
             {
-                _logger.LogInformation("✅ Admin users already exist");
+                _logger.LogInformation("✅ All seed staff accounts already exist");
             }
         }
 
