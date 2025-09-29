@@ -252,21 +252,21 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Database already exists with migrated data - skip initialization
-// using (var scope = app.Services.CreateScope())
-// {
-//     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-//     try 
-//     {
-//         context.Database.EnsureCreated();
-//         Console.WriteLine("✅ Database initialization successful");
-//     }
-//     catch (Exception ex)
-//     {
-//         Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
-//     }
-// }
-Console.WriteLine("✅ Using existing database with migrated data");
+// Automatically apply database migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        context.Database.Migrate();
+        Console.WriteLine("✅ Database migrations applied successfully");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Database migration failed: {ex.Message}");
+        throw; // Fail startup if migrations fail
+    }
+}
 
 // Configure HTTP request pipeline
 app.UseGlobalExceptionHandling(); // Must be first to catch all exceptions
