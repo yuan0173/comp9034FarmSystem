@@ -29,24 +29,35 @@ builder.Services.AddControllers()
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     // Get connection string from environment or configuration
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+    var raw = Environment.GetEnvironmentVariable("DATABASE_URL")
         ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-    if (string.IsNullOrEmpty(connectionString))
+    // Normalize and validate
+    var connectionString = raw?.Trim();
+    if (string.IsNullOrWhiteSpace(connectionString))
     {
         throw new InvalidOperationException("Database connection string is not configured. Please set DATABASE_URL environment variable or DefaultConnection in appsettings.json");
     }
 
-    // Parse PostgreSQL connection string from various formats
-    if (connectionString.StartsWith("postgres://"))
+    // Parse PostgreSQL connection string from URL formats used by Render/Heroku
+    // Supports: postgres:// and postgresql://
+    if (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
     {
         try
         {
-            // Parse Heroku/Render style connection string
+            // Parse Heroku/Render style connection string safely
             var uri = new Uri(connectionString);
             var userInfo = uri.UserInfo.Split(':');
-            connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.Substring(1)};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo[1])};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=30;Command Timeout=60";
-            Console.WriteLine($"📡 Parsed PostgreSQL connection: Host={uri.Host}, Port={uri.Port}, Database={uri.LocalPath.Substring(1)}");
+            var username = userInfo.Length > 0 ? userInfo[0] : string.Empty;
+            var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+            var database = uri.LocalPath.TrimStart('/');
+            var host = uri.Host;
+            var port = uri.IsDefaultPort ? 5432 : uri.Port;
+
+            // Use secure defaults for cloud Postgres
+            connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Command Timeout=60";
+            Console.WriteLine($"📡 Parsed PostgreSQL connection: Host={host}, Port={port}, Database={database}");
         }
         catch (Exception ex)
         {
@@ -88,17 +99,30 @@ Console.WriteLine("⚠️  Rate limiting not configured (requires .NET 7+ packag
 // Note: API Versioning would be configured here in production
 Console.WriteLine("⚠️  API versioning not configured (requires additional packages)");
 
-// Configure JWT Authentication
+// 配置 JWT（兼容多种环境变量命名）
+string? FirstNonEmpty(params string?[] values) => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
-    jwtSettings["SecretKey"] ?? 
-    "0634178ecb250a5766e4d873595b429f"; // 与Render环境变量一致
-var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? 
-    jwtSettings["Issuer"] ?? 
-    "COMP9034-FarmTimeMS";
-var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? 
-    jwtSettings["Audience"] ?? 
-    "COMP9034-FarmTimeMS-Users";
+var secretKey = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("JWT_SECRET_KEY"),
+    Environment.GetEnvironmentVariable("Jwt__SecretKey"),
+    Environment.GetEnvironmentVariable("Jwt_SecretKey"),
+    jwtSettings["SecretKey"]
+) ?? "0634178ecb250a5766e4d873595b429f"; // 默认开发值
+
+var issuer = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("JWT_ISSUER"),
+    Environment.GetEnvironmentVariable("Jwt__Issuer"),
+    Environment.GetEnvironmentVariable("Jwt_Issuer"),
+    jwtSettings["Issuer"]
+) ?? "COMP9034-FarmTimeMS";
+
+var audience = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
+    Environment.GetEnvironmentVariable("Jwt__Audience"),
+    Environment.GetEnvironmentVariable("Jwt_Audience"),
+    jwtSettings["Audience"]
+) ?? "COMP9034-FarmTimeMS-Users";
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -271,8 +295,41 @@ using (var scope = app.Services.CreateScope())
     try
     {
         Console.WriteLine("🔄 Testing database connection...");
-        await context.Database.CanConnectAsync();
-        Console.WriteLine("✅ Database connection successful");
+        var canConnect = await context.Database.CanConnectAsync();
+        if (canConnect)
+        {
+            Console.WriteLine("✅ Database connection successful");
+        }
+        else
+        {
+            Console.WriteLine("❌ Database connection failed");
+            if (app.Environment.IsProduction())
+            {
+                Console.WriteLine("🚨 Production startup failed - terminating");
+                throw new InvalidOperationException("Database connectivity test failed");
+            }
+        }
+
+        // 应用数据库迁移（优先于种子数据）
+        try
+        {
+            Console.WriteLine("🔄 Applying database migrations (if any)...");
+            await context.Database.MigrateAsync();
+            Console.WriteLine("✅ Database migrations applied");
+        }
+        catch (Exception mex)
+        {
+            Console.WriteLine($"❌ Database migration failed: {mex.Message}");
+            if (app.Environment.IsProduction())
+            {
+                Console.WriteLine("🚨 Production startup failed - terminating");
+                throw;
+            }
+            else
+            {
+                Console.WriteLine("⚠️  Development environment - continuing without migrations");
+            }
+        }
 
         Console.WriteLine("🔄 Ensuring seed data exists...");
         await seeder.SeedAsync();
