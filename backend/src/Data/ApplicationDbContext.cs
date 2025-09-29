@@ -254,8 +254,8 @@ namespace COMP9034.Backend.Data
                 entity.HasIndex(e => e.VerificationResult);
             });
 
-            // Enable seed data for production deployment
-            SeedData(modelBuilder);
+            // Seed data now handled by DatabaseSeeder service
+            // SeedData(modelBuilder);
         }
 
         /// <summary>

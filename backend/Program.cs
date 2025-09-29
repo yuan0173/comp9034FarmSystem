@@ -40,10 +40,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     // Parse PostgreSQL connection string from various formats
     if (connectionString.StartsWith("postgres://"))
     {
-        // Parse Heroku/Render style connection string
-        var uri = new Uri(connectionString);
-        var userInfo = uri.UserInfo.Split(':');
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.Substring(1)};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo[1])};SSL Mode=Prefer;Trust Server Certificate=true";
+        try
+        {
+            // Parse Heroku/Render style connection string
+            var uri = new Uri(connectionString);
+            var userInfo = uri.UserInfo.Split(':');
+            connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.Substring(1)};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo[1])};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=30;Command Timeout=60";
+            Console.WriteLine($"📡 Parsed PostgreSQL connection: Host={uri.Host}, Port={uri.Port}, Database={uri.LocalPath.Substring(1)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to parse DATABASE_URL: {ex.Message}");
+            throw new InvalidOperationException($"Invalid DATABASE_URL format: {ex.Message}");
+        }
     }
 
     options.UseNpgsql(connectionString);
@@ -67,6 +76,7 @@ builder.Services.AddScoped<COMP9034.Backend.Services.Interfaces.IEventService, C
 builder.Services.AddScoped<COMP9034.Backend.Services.Interfaces.IAuthService, COMP9034.Backend.Services.Implementation.AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<COMP9034.Backend.Services.DatabaseSeeder>();
 
 // Add Caching
 builder.Services.AddMemoryCache();
@@ -252,19 +262,36 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Automatically apply database migrations on startup
+// Database initialization and seeding
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var seeder = scope.ServiceProvider.GetRequiredService<COMP9034.Backend.Services.DatabaseSeeder>();
+
     try
     {
-        context.Database.Migrate();
-        Console.WriteLine("✅ Database migrations applied successfully");
+        Console.WriteLine("🔄 Testing database connection...");
+        await context.Database.CanConnectAsync();
+        Console.WriteLine("✅ Database connection successful");
+
+        Console.WriteLine("🔄 Ensuring seed data exists...");
+        await seeder.SeedAsync();
+        Console.WriteLine("✅ Database initialization completed");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Database migration failed: {ex.Message}");
-        throw; // Fail startup if migrations fail
+        Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+        if (app.Environment.IsProduction())
+        {
+            Console.WriteLine("🚨 Production startup failed - terminating");
+            throw;
+        }
+        else
+        {
+            Console.WriteLine("⚠️  Development environment - continuing without database");
+        }
     }
 }
 
