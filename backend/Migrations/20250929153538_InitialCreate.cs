@@ -415,6 +415,7 @@ namespace COMP9034.Backend.Migrations
                 table: "Staff",
                 column: "Username",
                 unique: true,
+
                 filter: "\"Username\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
