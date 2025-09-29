@@ -53,7 +53,9 @@ namespace COMP9034.Backend.Data
                 
                 entity.HasIndex(e => e.Email).IsUnique();
                 // Use partial index to enforce uniqueness only when Username is not null
-                entity.HasIndex(e => e.Username).IsUnique().HasFilter("Username IS NOT NULL");
+                entity.HasIndex(e => e.Username)
+                      .IsUnique()
+                      .HasFilter("\"Username\" IS NOT NULL");
                 entity.HasIndex(e => e.Role);
                 entity.HasIndex(e => e.IsActive);
             });
