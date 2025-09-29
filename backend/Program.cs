@@ -262,36 +262,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Database initialization and seeding
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var seeder = scope.ServiceProvider.GetRequiredService<COMP9034.Backend.Services.DatabaseSeeder>();
 
-    try
-    {
-        Console.WriteLine("🔄 Testing database connection...");
-        await context.Database.CanConnectAsync();
-        Console.WriteLine("✅ Database connection successful");
-
-        Console.WriteLine("🔄 Ensuring seed data exists...");
-        await seeder.SeedAsync();
-        Console.WriteLine("✅ Database initialization completed");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"❌ Database initialization failed: {ex.Message}");
-        Console.WriteLine($"Stack trace: {ex.StackTrace}");
-
-        if (app.Environment.IsProduction())
-        {
-            Console.WriteLine("🚨 Production startup failed - terminating");
-            throw;
-        }
-        else
-        {
-            Console.WriteLine("⚠️  Development environment - continuing without database");
-        }
     }
 }
 
