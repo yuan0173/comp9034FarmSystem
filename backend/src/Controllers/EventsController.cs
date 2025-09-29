@@ -193,9 +193,9 @@ namespace COMP9034.Backend.Controllers
                 }
 
                 // Set default timestamp if not provided
-                if (string.IsNullOrEmpty(eventRequest.TimeStamp))
+                if (eventRequest.TimeStamp == default(DateTime))
                 {
-                    eventRequest.TimeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    eventRequest.TimeStamp = DateTime.UtcNow;
                 }
 
                 // Set creation timestamp
