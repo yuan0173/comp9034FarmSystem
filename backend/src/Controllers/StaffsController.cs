@@ -16,12 +16,14 @@ namespace COMP9034.Backend.Controllers
     [Route("api/[controller]")]
     public class StaffsController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
         private readonly IStaffService _staffService;
         private readonly ILogger<StaffsController> _logger;
         private readonly IAuditService _auditService;
 
-        public StaffsController(IStaffService staffService, ILogger<StaffsController> logger, IAuditService auditService)
+        public StaffsController(ApplicationDbContext context, IStaffService staffService, ILogger<StaffsController> logger, IAuditService auditService)
         {
+            _context = context;
             _staffService = staffService;
             _logger = logger;
             _auditService = auditService;
