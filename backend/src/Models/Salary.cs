@@ -1,114 +1,192 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Salary entity model for payroll system
+    /// Salary entity model - Built from Tan Architecture Database Schema
+    /// Implements complete schema specification for payroll management
     /// </summary>
     public class Salary
     {
         /// <summary>
-        /// Salary ID (Primary Key)
+        /// (PK) salaryId: Unique identifier for each salary record
         /// </summary>
+        [Key]
         public int SalaryId { get; set; }
 
         /// <summary>
-        /// Staff ID (Foreign Key)
+        /// (FK) staffId: Reference to staff member
         /// </summary>
+        [Required]
         public int StaffId { get; set; }
 
         /// <summary>
-        /// Pay period start date (ISO 8601 format)
+        /// payPeriodStart: Start date of the pay period
         /// </summary>
         [Required]
-        public string PayPeriodStart { get; set; } = string.Empty;
+        [Column(TypeName = "date")]
+        public DateTime PayPeriodStart { get; set; }
 
         /// <summary>
-        /// Pay period end date (ISO 8601 format)
+        /// payPeriodEnd: End date of the pay period
         /// </summary>
         [Required]
-        public string PayPeriodEnd { get; set; } = string.Empty;
+        [Column(TypeName = "date")]
+        public DateTime PayPeriodEnd { get; set; }
 
         /// <summary>
-        /// Total working hours in the pay period
+        /// totalHours: Total hours worked in the pay period
         /// </summary>
+        [Column(TypeName = "decimal(8,2)")]
         public decimal TotalHours { get; set; } = 0;
 
         /// <summary>
-        /// Overtime hours in the pay period
+        /// totalOvertimeHours: Total overtime hours worked
         /// </summary>
-        public decimal OvertimeHours { get; set; } = 0;
+        [Column(TypeName = "decimal(8,2)")]
+        public decimal TotalOvertimeHours { get; set; } = 0;
 
         /// <summary>
-        /// Regular pay amount
+        /// grossPay: Total gross pay for the period
         /// </summary>
-        public decimal RegularPay { get; set; } = 0;
-
-        /// <summary>
-        /// Overtime pay amount
-        /// </summary>
-        public decimal OvertimePay { get; set; } = 0;
-
-        /// <summary>
-        /// Gross pay (total before deductions)
-        /// </summary>
+        [Column(TypeName = "decimal(10,2)")]
         public decimal GrossPay { get; set; } = 0;
 
         /// <summary>
-        /// Salary status: 'Draft', 'Approved', 'Paid'
+        /// generatedDate: Date when the salary record was generated
         /// </summary>
-        public string Status { get; set; } = "Draft";
+        [Required]
+        public DateTime GeneratedDate { get; set; } = DateTime.UtcNow;
 
+        // Navigation property based on Schema relationships
         /// <summary>
-        /// Creation timestamp
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// Last update timestamp
-        /// </summary>
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        // Navigation properties
-        /// <summary>
-        /// Related staff member
+        /// Related staff member (FK relationship)
         /// </summary>
         public virtual Staff Staff { get; set; } = null!;
 
-        // Computed properties
+        // Computed properties for business logic
         /// <summary>
-        /// Regular working hours (total - overtime)
+        /// Calculate regular hours (total - overtime)
         /// </summary>
-        public decimal RegularHours => Math.Max(0, TotalHours - OvertimeHours);
+        [NotMapped]
+        public decimal RegularHours => TotalHours - TotalOvertimeHours;
 
         /// <summary>
-        /// Calculate total pay period days
+        /// Calculate regular pay based on staff rates
         /// </summary>
-        public int PayPeriodDays
+        [NotMapped]
+        public decimal RegularPay
         {
             get
             {
-                if (DateTime.TryParse(PayPeriodStart, out var start) && DateTime.TryParse(PayPeriodEnd, out var end))
-                {
-                    return (int)(end - start).TotalDays + 1;
-                }
+                if (Staff != null)
+                    return RegularHours * Staff.StandardPayRate;
                 return 0;
             }
         }
 
         /// <summary>
-        /// Check if salary record is finalized
+        /// Calculate overtime pay based on staff rates
         /// </summary>
-        public bool IsFinalized => Status == "Approved" || Status == "Paid";
+        [NotMapped]
+        public decimal OvertimePay
+        {
+            get
+            {
+                if (Staff != null)
+                    return TotalOvertimeHours * Staff.OvertimePayRate;
+                return 0;
+            }
+        }
 
         /// <summary>
-        /// Calculate gross pay from hours and rates
+        /// Calculate total calculated pay (may differ from stored GrossPay)
         /// </summary>
-        public void CalculateGrossPay(decimal standardRate, decimal overtimeRate)
+        [NotMapped]
+        public decimal CalculatedGrossPay => RegularPay + OvertimePay;
+
+        /// <summary>
+        /// Get pay period duration in days
+        /// </summary>
+        [NotMapped]
+        public int PayPeriodDays => (PayPeriodEnd - PayPeriodStart).Days + 1;
+
+        /// <summary>
+        /// Get formatted pay period string
+        /// </summary>
+        [NotMapped]
+        public string PayPeriodRange => $"{PayPeriodStart:yyyy-MM-dd} to {PayPeriodEnd:yyyy-MM-dd}";
+
+        /// <summary>
+        /// Check if this is the current pay period
+        /// </summary>
+        [NotMapped]
+        public bool IsCurrentPeriod
         {
-            RegularPay = RegularHours * standardRate;
-            OvertimePay = OvertimeHours * overtimeRate;
-            GrossPay = RegularPay + OvertimePay;
+            get
+            {
+                var today = DateTime.Today;
+                return today >= PayPeriodStart && today <= PayPeriodEnd;
+            }
+        }
+
+        /// <summary>
+        /// Get average hours per day in this period
+        /// </summary>
+        [NotMapped]
+        public decimal AverageHoursPerDay => PayPeriodDays > 0 ? TotalHours / PayPeriodDays : 0;
+
+        // Legacy compatibility properties for existing code
+        /// <summary>
+        /// Legacy property mapping for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public DateTime CreatedAt
+        {
+            get => GeneratedDate;
+            set => GeneratedDate = value;
+        }
+
+        /// <summary>
+        /// Legacy property mapping for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public DateTime UpdatedAt
+        {
+            get => GeneratedDate;
+            set => GeneratedDate = value;
+        }
+
+        /// <summary>
+        /// Legacy status property for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public string Status { get; set; } = "Draft";
+
+        // Validation methods
+        /// <summary>
+        /// Validate that pay period dates are logical
+        /// </summary>
+        public bool IsValidPayPeriod()
+        {
+            return PayPeriodStart <= PayPeriodEnd;
+        }
+
+        /// <summary>
+        /// Validate that overtime hours don't exceed total hours
+        /// </summary>
+        public bool IsValidOvertimeHours()
+        {
+            return TotalOvertimeHours <= TotalHours;
+        }
+
+        /// <summary>
+        /// Check if gross pay matches calculated pay (within tolerance)
+        /// </summary>
+        public bool IsGrossPayAccurate(decimal tolerance = 0.01m)
+        {
+            return Math.Abs(GrossPay - CalculatedGrossPay) <= tolerance;
         }
     }
 }

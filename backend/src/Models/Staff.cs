@@ -1,88 +1,111 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Staff entity model - Updated for Tan Architecture
+    /// Staff entity model - Built from Tan Architecture Database Schema
+    /// Implements complete schema specification for staff management
     /// </summary>
     public class Staff
     {
         /// <summary>
-        /// Staff ID (Primary Key)
+        /// (PK) staffId: Unique identifier for each staff member
         /// </summary>
+        [Key]
         public int StaffId { get; set; }
 
         /// <summary>
-        /// First name
+        /// firstName: Staff member's first name
         /// </summary>
+        [Required]
+        [MaxLength(50)]
         public string FirstName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Last name
+        /// lastName: Staff member's last name
         /// </summary>
+        [Required]
+        [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Email address (required, unique)
+        /// email: Staff member's email address
         /// </summary>
+        [Required]
+        [MaxLength(255)]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
-        /// User role: 'Staff', 'Manager', 'Admin'
+        /// phone: Staff member's phone number
         /// </summary>
-        public string Role { get; set; } = "Staff";
+        [MaxLength(20)]
+        public string? Phone { get; set; }
 
         /// <summary>
-        /// Standard hourly pay rate
+        /// address: Staff member's physical address
         /// </summary>
-        public decimal StandardPayRate { get; set; }
+        [MaxLength(500)]
+        public string? Address { get; set; }
 
         /// <summary>
-        /// Overtime hourly pay rate
+        /// contractType: Type of employment contract (Casual, Full Time, Part Time)
         /// </summary>
-        public decimal OvertimePayRate { get; set; }
-
-        /// <summary>
-        /// Contract type: 'FullTime', 'PartTime', 'Casual'
-        /// </summary>
+        [Required]
+        [MaxLength(20)]
         public string ContractType { get; set; } = "Casual";
 
         /// <summary>
-        /// Standard working hours per week
+        /// isActive: Boolean flag indicating if staff member is currently active
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// role: Staff member's job role/position
+        /// </summary>
+        [Required]
+        [MaxLength(20)]
+        public string Role { get; set; } = "Staff";
+
+        /// <summary>
+        /// standardHoursPerWeek: Standard working hours per week for the staff member
         /// </summary>
         public int StandardHoursPerWeek { get; set; } = 40;
 
         /// <summary>
-        /// PIN password for device access (maintained for compatibility)
+        /// standardPayRate: Regular hourly pay rate
         /// </summary>
-        public string Pin { get; set; } = string.Empty;
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal StandardPayRate { get; set; }
 
         /// <summary>
-        /// Username for system login (optional)
+        /// overtimePayRate: Overtime hourly pay rate
         /// </summary>
-        public string? Username { get; set; }
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal OvertimePayRate { get; set; }
 
+        // Authentication fields (for system functionality)
         /// <summary>
-        /// Password hash for system login
+        /// Password hash for email/password authentication
         /// </summary>
+        [MaxLength(255)]
         public string? PasswordHash { get; set; }
 
         /// <summary>
-        /// Phone number
+        /// PIN field for authentication (matches database - NOT NULL)
         /// </summary>
-        public string? Phone { get; set; }
+        [Required]
+        [MaxLength(10)]
+        public string Pin { get; set; } = string.Empty;
 
         /// <summary>
-        /// Home address
+        /// Username field for backward compatibility (deprecated in Tan Schema)
         /// </summary>
-        public string? Address { get; set; }
+        [MaxLength(50)]
+        public string? Username { get; set; }
 
-
-        /// <summary>
-        /// Active status
-        /// </summary>
-        public bool IsActive { get; set; } = true;
-
+        // Audit fields
         /// <summary>
         /// Creation timestamp
         /// </summary>
@@ -93,21 +116,41 @@ namespace COMP9034.Backend.Models
         /// </summary>
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
-        public virtual ICollection<Event> Events { get; set; } = new List<Event>();
-        public virtual ICollection<BiometricData> BiometricData { get; set; } = new List<BiometricData>();
+        // Navigation properties based on Schema relationships
+        /// <summary>
+        /// Staff (1) → (N) WorkSchedule: One staff member can have multiple scheduled shifts
+        /// </summary>
         public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
-        public virtual ICollection<Salary> Salaries { get; set; } = new List<Salary>();
-        public virtual ICollection<BiometricVerification> BiometricVerifications { get; set; } = new List<BiometricVerification>();
 
         /// <summary>
-        /// Full name property for backward compatibility
+        /// Staff (1) → (N) Events: One staff member can generate multiple events
+        /// </summary>
+        public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+
+        /// <summary>
+        /// Staff (1) → (N) Salary: One staff member can have multiple salary records
+        /// </summary>
+        public virtual ICollection<Salary> Salaries { get; set; } = new List<Salary>();
+
+        /// <summary>
+        /// Staff (1) → (N) BiometricData: One staff member can have multiple biometric templates
+        /// </summary>
+        public virtual ICollection<BiometricData> BiometricData { get; set; } = new List<BiometricData>();
+
+        /// <summary>
+        /// Staff (1) → (N) BiometricVerification: One staff member can have multiple verification attempts
+        /// </summary>
+        public virtual ICollection<BiometricVerification> BiometricVerifications { get; set; } = new List<BiometricVerification>();
+
+        // Computed properties for backward compatibility
+        /// <summary>
+        /// Full name property for display purposes
         /// </summary>
         [NotMapped]
         public string Name => $"{FirstName} {LastName}";
 
         /// <summary>
-        /// Hourly rate property for backward compatibility
+        /// Legacy property for backward compatibility
         /// </summary>
         [NotMapped]
         public decimal HourlyRate
@@ -117,7 +160,7 @@ namespace COMP9034.Backend.Models
         }
 
         /// <summary>
-        /// Staff ID property for backward compatibility
+        /// Legacy property for backward compatibility
         /// </summary>
         [NotMapped]
         public int Id
@@ -127,7 +170,7 @@ namespace COMP9034.Backend.Models
         }
 
         /// <summary>
-        /// Determine role based on staff ID
+        /// Determine role based on staff ID (legacy business logic)
         /// </summary>
         public string GetRoleFromId()
         {

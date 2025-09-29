@@ -9,8 +9,16 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Create data directory for SQLite database
+# Install Entity Framework tools for migrations
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+# Create directories for application data
 RUN mkdir -p /app/Data
 
+# Create startup script
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "COMP9034-Backend.dll"]
+ENTRYPOINT ["/app/startup.sh"]

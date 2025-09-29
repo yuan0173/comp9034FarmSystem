@@ -1,95 +1,123 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace COMP9034.Backend.Models
 {
     /// <summary>
-    /// Work Schedule entity model for scheduling system
+    /// WorkSchedule entity model - Built from Tan Architecture Database Schema
+    /// Implements complete schema specification for shift scheduling
     /// </summary>
     public class WorkSchedule
     {
         /// <summary>
-        /// Schedule ID (Primary Key)
+        /// (PK) scheduleID: Unique identifier for each scheduled shift
         /// </summary>
-        public int ScheduleId { get; set; }
+        [Key]
+        public int ScheduleID { get; set; }
 
         /// <summary>
-        /// Staff ID (Foreign Key)
+        /// (FK) staffId: Reference to staff member assigned to this shift
         /// </summary>
+        [Required]
         public int StaffId { get; set; }
 
         /// <summary>
-        /// Scheduled date (ISO 8601 format)
+        /// date: Date of the scheduled shift
         /// </summary>
         [Required]
-        public string ScheduledDate { get; set; } = string.Empty;
+        [Column(TypeName = "date")]
+        public DateTime Date { get; set; }
 
         /// <summary>
-        /// Start time (ISO 8601 format)
+        /// startTime: Shift start time
         /// </summary>
         [Required]
-        public string StartTime { get; set; } = string.Empty;
+        [Column(TypeName = "time")]
+        public TimeSpan StartTime { get; set; }
 
         /// <summary>
-        /// End time (ISO 8601 format)
+        /// endTime: Shift end time
         /// </summary>
         [Required]
-        public string EndTime { get; set; } = string.Empty;
+        [Column(TypeName = "time")]
+        public TimeSpan EndTime { get; set; }
 
         /// <summary>
-        /// Schedule status: 'Scheduled', 'Completed', 'Cancelled'
+        /// scheduleHours: Total scheduled hours for this shift
         /// </summary>
-        public string Status { get; set; } = "Scheduled";
+        [Column(TypeName = "decimal(8,2)")]
+        public decimal ScheduleHours { get; set; }
 
+        // Navigation property based on Schema relationships
         /// <summary>
-        /// Additional notes or comments
-        /// </summary>
-        public string? Notes { get; set; }
-
-        /// <summary>
-        /// Creation timestamp
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// Last update timestamp
-        /// </summary>
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        // Navigation properties
-        /// <summary>
-        /// Related staff member
+        /// Related staff member (FK relationship)
         /// </summary>
         public virtual Staff Staff { get; set; } = null!;
 
-        // Computed properties
+        // Computed properties for business logic
         /// <summary>
-        /// Calculate scheduled hours duration
+        /// Calculate scheduled hours duration automatically
         /// </summary>
-        public double ScheduledHours
+        [NotMapped]
+        public decimal CalculatedHours
         {
             get
             {
-                if (TimeSpan.TryParse(StartTime, out var start) && TimeSpan.TryParse(EndTime, out var end))
+                var duration = EndTime - StartTime;
+                if (duration.TotalHours < 0) // Handle overnight shifts
                 {
-                    var duration = end - start;
-                    return duration.TotalHours > 0 ? duration.TotalHours : 24 + duration.TotalHours; // Handle overnight shifts
+                    duration = duration.Add(TimeSpan.FromHours(24));
                 }
-                return 0;
+                return (decimal)duration.TotalHours;
             }
         }
 
         /// <summary>
-        /// Check if schedule is active (today or future)
+        /// Check if schedule is for today or future
         /// </summary>
-        public bool IsActive
+        [NotMapped]
+        public bool IsActive => Date.Date >= DateTime.Today;
+
+        /// <summary>
+        /// Check if this is an overnight shift
+        /// </summary>
+        [NotMapped]
+        public bool IsOvernightShift => EndTime < StartTime;
+
+        /// <summary>
+        /// Get formatted date string
+        /// </summary>
+        [NotMapped]
+        public string FormattedDate => Date.ToString("yyyy-MM-dd");
+
+        /// <summary>
+        /// Get formatted time range
+        /// </summary>
+        [NotMapped]
+        public string TimeRange => $"{StartTime:hh\\:mm} - {EndTime:hh\\:mm}";
+
+        // Legacy compatibility properties
+        /// <summary>
+        /// Legacy property mapping for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public int ScheduleId
         {
-            get
+            get => ScheduleID;
+            set => ScheduleID = value;
+        }
+
+        /// <summary>
+        /// Legacy property mapping for backward compatibility
+        /// </summary>
+        [NotMapped]
+        public string ScheduledDate
+        {
+            get => Date.ToString("yyyy-MM-dd");
+            set
             {
-                if (DateTime.TryParse(ScheduledDate, out var scheduleDate))
-                {
-                    return scheduleDate.Date >= DateTime.Today && Status == "Scheduled";
-                }
-                return false;
+                if (DateTime.TryParse(value, out var parsed))
+                    Date = parsed.Date;
             }
         }
     }
