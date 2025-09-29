@@ -12,9 +12,5 @@ COPY --from=build /app/publish .
 # Create directories for application data
 RUN mkdir -p /app/Data
 
-# Create startup script
-COPY startup.sh /app/startup.sh
-RUN chmod +x /app/startup.sh
-
 EXPOSE 8080
-ENTRYPOINT ["/app/startup.sh"]
+ENTRYPOINT ["dotnet", "COMP9034-Backend.dll"]
