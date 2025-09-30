@@ -77,38 +77,20 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   
   const queryClient = useQueryClient()
 
-
-  // Configuration matching your TypeScript code exactly
-  const BASE_URL = 'http://localhost:4000'
-  const TOKEN_KEY = 'authToken'
-  const token = localStorage.getItem(TOKEN_KEY)
-  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
-
-  // API functions exactly matching your TypeScript code
+  // 统一使用封装的 staffApi + httpClient（带环境与鉴权）
   async function searchStaffs(keyword: string, includeInactive: boolean = true): Promise<Staff[]> {
     const results: Staff[] = []
-    
     try {
-      const response = await fetch(`${BASE_URL}/api/Staffs?search=${encodeURIComponent(keyword)}`, {
-        headers: { ...authHeaders }
-      })
-      if (response.ok) {
-        const data: Staff[] = await response.json()
-        results.push(...data)
-      }
+      const active = await staffApi.getAll({ query: keyword })
+      results.push(...active)
     } catch (error) {
       console.warn('Error searching active staff:', error)
     }
 
     if (includeInactive) {
       try {
-        const response2 = await fetch(`${BASE_URL}/api/Staffs/inactive?search=${encodeURIComponent(keyword)}`, {
-          headers: { ...authHeaders }
-        })
-        if (response2.ok) {
-          const data: Staff[] = await response2.json()
-          results.push(...data)
-        }
+        const inactive = await staffApi.getInactive({ query: keyword })
+        results.push(...inactive)
       } catch (error) {
         console.warn('Error searching inactive staff:', error)
       }
