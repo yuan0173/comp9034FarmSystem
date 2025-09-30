@@ -159,9 +159,9 @@ namespace COMP9034.Backend.Models
         }
 
         /// <summary>
-        /// Legacy status property for backward compatibility
+        /// status: Payroll status (e.g., Draft, Finalized, Paid)
+        /// Mapped to database column to match schema (NOT NULL)
         /// </summary>
-        [NotMapped]
         public string Status { get; set; } = "Draft";
 
         // Validation methods
