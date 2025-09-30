@@ -1,0 +1,114 @@
+# 标准模板工作流（项目内通用）
+
+## 适用范围
+- 适用于：后端修复（数据库/迁移/CORS/种子）、前端修复（日期格式、过滤逻辑）、文档新增
+- 目标：按规范新建分支 → 实施改动 → 规范提交/PR → 合并 → 验证 → 清理
+
+## 前置条件
+- GitHub CLI 已登录：
+  - `gh auth login --hostname github.com --scopes repo --git-protocol https --web`
+- 本地仓库同步：
+  - `git fetch origin --prune`
+  - `git checkout main && git pull`
+- 无本地锁：
+  - `rm -f .git/index.lock`
+
+## 分支命名（规范）
+- 功能/增强：`enhancement/yuan0173/<scope>/<kebab-描述>`
+- 缺陷修复：`bugfix/yuan0173/<scope>/<kebab-描述>`
+- 文档：`docs/yuan0173/docs/<kebab-描述>`
+- 示例：
+  - `enhancement/yuan0173/frontend/english-date-format-ddmmyy`
+  - `bugfix/yuan0173/frontend/admin-staffs-active-tab-filter`
+  - `docs/yuan0173/docs/production-test-summary-2025-09-30`
+
+## 实施修改（示例要点）
+- 前端日期格式（DD/MM/YY、24 小时）：
+  - 文件：`frontendWebsite/src/utils/time.ts`
+  - `formatDate` → en-GB，`DD/MM/YY`（2 位年份）
+  - `formatTime` → `HH:MM`（24h，不含秒）
+  - `formatDateTime` → 组合输出 `DD/MM/YY HH:MM`
+- AdminStaffs 过滤与 UI：
+  - 文件：`frontendWebsite/src/pages/AdminStaffs.tsx`
+  - Active 标签页：仅显示 `isActive===true`
+  - Inactive 标签页：使用独立 API 数据集（`/api/Staffs/inactive`）
+  - 锁定 Status 下拉：随标签显示 Active/Inactive，并禁用（避免误导）
+- 后端（示例）：
+  - 迁移/索引：PostgreSQL 过滤索引需引用列名（`"Username"`）
+  - 种子：幂等补齐 `9001/8001/1001/2001`
+  - 控制器：`StaffsController` 注入 `ApplicationDbContext` 并恢复编译
+- 文档：
+  - 路径：`claude/docs/...`（如被 .gitignore 忽略，需强制 `git add -f`）
+
+## 提交信息（Conventional Commits）
+- `enhancement(frontend): switch date/time locale to en-GB (DD/MM/YY, 24h HH:MM)`
+- `fix(frontend): ensure Active Staff tab shows only active staff`
+- `enhancement(frontend): lock Status filter to current tab (Active/Inactive)`
+- `fix(database): quote filtered index on Staff.Username to avoid 42703`
+- `fix(seed): make staff seeding idempotent and ensure missing test accounts are created`
+- `fix(backend): include StaffsController in build and inject ApplicationDbContext`
+- `docs: add production environment test summary (YYYY-MM-DD)`
+- `chore(frontend): update development environment API base URL to Render backend`
+
+## PR 模板（英文，纯文本，无加粗）
+- Title：`<type(scope): concise description>`
+- Summary：说明修复/功能点与原因
+- Changes Made：列出文件与关键改动（每文件 1–3 点）
+- Affected Components：用户可见影响范围（模块/页面）
+- Testing：`[x]` 具体验证用例与预期结果
+- Impact：行为/迁移/用户可见影响
+- Modules Affected：`backend/` 或 `frontendWebsite/` 或 `docs/`
+- Rollback Plan：回退方法（还原提交/禁用开关）
+
+## 标准 Git 流程（每个 PR）
+- 新建分支：`git checkout -b <branch-name>`
+- 暂存/提交：`git add <files>` → `git commit -m "<title>" -m "<details>"`
+- 推送：`git push -u origin <branch-name>`
+- 创建 PR：`gh pr create --title "<title>" --body "<body>" --base main --head <branch-name>`
+- 合并：`gh pr merge <PR#> --merge --delete-branch --admin`
+
+## 合并后验证（后端）
+- Render 部署日志：
+  - 解析 PostgreSQL 连接（不打印密钥）
+  - 迁移成功（无 42703/“relation 不存在”）
+  - 种子：`Seeded X missing staff accounts` 或 `All seed staff accounts already exist`
+  - `/health` 返回 200
+- CORS：
+  - 生产用双下划线数组：`AllowedOrigins__0=https://yuan0173.github.io`
+  - curl 预检：204 + 正确 CORS 头
+- JWT：`JWT_SECRET_KEY / JWT_ISSUER / JWT_AUDIENCE`（或兼容的 `Jwt__*`）
+
+## 合并后验证（前端）
+- 时间格式：`DD/MM/YY HH:MM（24h）` → AdminLoginHistory、Station、NetworkBadge、AdminStaffs、AdminEvents
+- AdminStaffs：
+  - Active 仅显示在职；Inactive 使用独立数据集
+  - Status 下拉随标签显示并禁用
+- 刷新缓存或重新部署以生效
+
+## 冲突处理（示例）
+- 过滤索引：保留带引号版本 `filter: "\"Username\" IS NOT NULL"`；删除未引号版与冲突标记
+- JSON 属性冲突：主属性加 `JsonPropertyName("...")`，Legacy 别名加 `JsonIgnore`
+
+## 分支清理
+- 合并后删除远端：`gh pr merge <PR#> --merge --delete-branch --admin`
+- 删除本地：`git branch -d <branch-name>`
+- 如遇锁：`rm -f .git/index.lock`
+
+## 运维注意
+- 迁移：仓库包含 `InitialCreate`；启动先 `Migrate` 再 `Seeding`
+- 种子：幂等创建基础账号与设备
+- CORS：生产用 `AllowedOrigins__N`（双下划线）；允许凭据时不可使用通配符 `*`
+- 日志：不输出敏感信息（仅 host/port/db）
+
+## 回滚策略
+- 直接 Revert 对应 PR 或提交
+- 牵涉数据库时，确保迁移回退安全或使用稳定快照重部署
+- 前端行为回滚：还原提交即可
+
+## 端到端示例
+- 前端日期格式：
+  - 新建分支 → 修改 `time.ts` → 提交/推送 → 开 PR → 合并 → 验证 UI 时间
+- AdminStaffs 活跃过滤 + UI 锁定：
+  - 新建分支 → 修改 `AdminStaffs.tsx` → 提交/推送 → 开 PR → 合并 → 验证删除/切换标签
+
+> 说明：本工作流模板为项目通用操作规范。后续开发与修复请严格遵循此流程执行。
