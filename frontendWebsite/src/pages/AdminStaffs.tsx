@@ -551,6 +551,10 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   // For backward compatibility, keep the original name
   const filteredStaffs = filteredAndSortedStaffs
 
+  // Calculate actual counts for tabs
+  const activeStaffCount = staffs.filter(staff => staff.isActive).length
+  const totalStaffCount = staffs.length
+
   const getStatusColor = (isActive: boolean) => {
     return isActive ? 'success' : 'error'
   }
@@ -601,13 +605,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
             }
           }}
         >
-          <Tab 
-            icon={<People />} 
-            label={`Active Staff (${staffs.length})`}
+          <Tab
+            icon={<People />}
+            label={`Active Staff (${activeStaffCount})`}
             iconPosition="start"
           />
-          <Tab 
-            icon={<Archive />} 
+          <Tab
+            icon={<Archive />}
             label={`Inactive Staff (${inactiveStaffs.length})`}
             iconPosition="start"
           />
@@ -664,11 +668,23 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                   label="Status"
                   onChange={() => { /* locked by tab */ }}
                   disabled
+                  sx={{
+                    '& .MuiSelect-select': {
+                      color: 'text.secondary'
+                    }
+                  }}
                 >
                   <MenuItem value={activeTab === 0 ? 'active' : 'inactive'}>
                     {activeTab === 0 ? 'Active' : 'Inactive'}
                   </MenuItem>
                 </Select>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, fontSize: '0.7rem', lineHeight: 1.2 }}
+                >
+                  由上方标签页控制
+                </Typography>
               </FormControl>
             </Grid>
 
@@ -744,8 +760,8 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              {activeTab === 0 
-                ? `Active Staff Directory (${filteredStaffs.length} of ${staffs.length} employees)`
+              {activeTab === 0
+                ? `Active Staff Directory (${filteredStaffs.length} of ${activeStaffCount} employees)`
                 : `Inactive Staff Directory (${inactiveStaffs.length} employees)`
               }
             </Typography>
@@ -968,13 +984,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       </Card>
 
       {/* Summary Stats */}
-      {!isLoading && staffs.length > 0 && (
+      {!isLoading && totalStaffCount > 0 && (
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" color="primary">
-                  {staffs.length}
+                  {totalStaffCount}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Total Staff
@@ -986,7 +1002,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" color="success.main">
-                  {staffs.filter(s => s.isActive).length}
+                  {activeStaffCount}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Active Staff
@@ -1011,8 +1027,9 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" color="warning.main">
                   $
-                  {(staffs.reduce((sum, s) => sum + (s.hourlyRate || 0), 0) /
-                    staffs.length).toFixed(2)}
+                  {activeStaffCount > 0
+                    ? (staffs.filter(s => s.isActive).reduce((sum, s) => sum + (s.hourlyRate || 0), 0) / activeStaffCount).toFixed(2)
+                    : "0.00"}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Avg. Pay Rate
