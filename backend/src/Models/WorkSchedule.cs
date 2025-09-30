@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace COMP9034.Backend.Models
 {
@@ -13,6 +14,7 @@ namespace COMP9034.Backend.Models
         /// (PK) scheduleID: Unique identifier for each scheduled shift
         /// </summary>
         [Key]
+        [JsonPropertyName("scheduleId")]
         public int ScheduleID { get; set; }
 
         /// <summary>
@@ -101,6 +103,7 @@ namespace COMP9034.Backend.Models
         /// Legacy property mapping for backward compatibility
         /// </summary>
         [NotMapped]
+        [JsonIgnore]
         public int ScheduleId
         {
             get => ScheduleID;
