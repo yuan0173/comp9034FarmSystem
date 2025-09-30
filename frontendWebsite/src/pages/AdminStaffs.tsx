@@ -501,10 +501,11 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       // Role filter
       const matchesRole = roleFilter === 'all' || staff.role === roleFilter
 
-                    // Status filter (keep the frontend filtering since backend only returns active staff)
-              const matchesStatus = statusFilter === 'all' || 
-                (statusFilter === 'active' && staff.isActive) ||
-                (statusFilter === 'inactive' && !staff.isActive)
+      // Status filter:
+      // - Active tab (0): strictly show only active staff (isActive = true)
+      //   Ignore statusFilter to avoid showing inactive entries on Active tab
+      // - Inactive tab uses a separate dataset (inactiveStaffs), so always allow here
+      const matchesStatus = activeTab === 0 ? staff.isActive : true
 
       return matchesSearch && matchesRole && matchesStatus
     })
