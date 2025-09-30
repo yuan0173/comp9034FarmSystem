@@ -21,10 +21,7 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
-  <!-- Temporarily exclude StaffsController to unblock build for device API validation -->
-  <ItemGroup>
-    <Compile Remove="src/Controllers/StaffsController.cs" />
-  </ItemGroup>
+  <!-- Restore StaffsController into build (previous exclude removed) -->
 
 
 
