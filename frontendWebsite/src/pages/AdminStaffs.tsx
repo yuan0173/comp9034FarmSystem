@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Card,
@@ -585,7 +585,11 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       <Paper elevation={1} sx={{ mb: 3 }}>
         <Tabs 
           value={activeTab} 
-          onChange={(_, newValue) => setActiveTab(newValue)}
+          onChange={(_, newValue) => {
+            setActiveTab(newValue)
+            // Keep status filter visually consistent with tab
+            setStatusFilter(newValue === 0 ? 'active' : 'inactive')
+          }}
           variant="fullWidth"
           sx={{
             borderBottom: 1,
@@ -655,13 +659,15 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
               <FormControl size="small" fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
-                  value={statusFilter}
+                  // Lock status by current tab to avoid confusion
+                  value={activeTab === 0 ? 'active' : 'inactive'}
                   label="Status"
-                  onChange={e => setStatusFilter(e.target.value)}
+                  onChange={() => { /* locked by tab */ }}
+                  disabled
                 >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value={activeTab === 0 ? 'active' : 'inactive'}>
+                    {activeTab === 0 ? 'Active' : 'Inactive'}
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
