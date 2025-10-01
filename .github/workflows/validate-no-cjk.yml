@@ -1,0 +1,19 @@
+name: Validate No CJK In Source
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  no-cjk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run CJK check on source files
+        run: |
+          python3 .github/scripts/check_no_cjk.py
+
