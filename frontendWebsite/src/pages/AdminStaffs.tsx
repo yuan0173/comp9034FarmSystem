@@ -212,13 +212,13 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     refetchOnWindowFocus: false,
   })
 
-  // Fetch inactive (soft-deleted) staff data from API
+  // Fetch inactive (soft-deleted) staff data from API (preload for accurate tab count)
   const { data: inactiveStaffs = [], isLoading: isLoadingInactive } = useQuery({
     queryKey: ['inactiveStaffs'],
     queryFn: () => staffApi.getInactive(),
     retry: 1,
     refetchOnWindowFocus: false,
-    enabled: activeTab === 1, // Only fetch when "Inactive Staff" tab is active
+    staleTime: 300000, // 5 minutes to avoid frequent refetching
   })
 
   // Create staff mutation
