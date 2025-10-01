@@ -13,6 +13,11 @@
 - 无本地锁：
   - `rm -f .git/index.lock`
 
+## 流程强制第一步（中文评审与授权）
+- 每次改动前，必须先用中文向仓库所有者提交“变更分析与方案”（问题、根因、候选方案、推荐方案、影响范围、验证计划）。
+- 等待仓库所有者“中文确认 + 授权”后，方可进入后续的分支、提交、PR 等操作。
+- PR 描述中需包含“已完成中文方案确认并获授权”的说明（或勾选 PR 模板中的对应项）。
+
 ## 分支命名（规范）
 - 功能/增强：`enhancement/yuan0173/<scope>/<kebab-描述>`
 - 缺陷修复：`bugfix/yuan0173/<scope>/<kebab-描述>`
@@ -51,6 +56,7 @@
 - `chore(frontend): update development environment API base URL to Render backend`
 
 ## PR 模板（英文，纯文本，无加粗）
+- 首行须注明：`[x] 中文方案已与仓库所有者确认并获得授权`
 - Title：`<type(scope): concise description>`
 - Summary：说明修复/功能点与原因
 - Changes Made：列出文件与关键改动（每文件 1–3 点）
