@@ -44,7 +44,7 @@ interface AdminStaffsProps {
 export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  // Status is controlled by tabs; no standalone status filter state
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [activeTab, setActiveTab] = useState(0) // 0: Active Staff, 1: Inactive Staff
@@ -77,7 +77,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   
   const queryClient = useQueryClient()
 
-  // 统一使用封装的 staffApi + httpClient（带环境与鉴权）
+  // Use centralized staffApi + httpClient (env-aware, auth)
   async function searchStaffs(keyword: string, includeInactive: boolean = true): Promise<Staff[]> {
     const results: Staff[] = []
     try {
@@ -170,14 +170,14 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
 
 
 
-  // 🛡️ 新增：检查是否可以删除某个员工
+  // Guard: check whether a staff can be deleted
   const canDeleteStaff = (staff: Staff) => {
-    // 1. 不能删除自己
+    // 1) Cannot delete current user
     if (staff.id === currentUser.staffId) {
       return false
     }
     
-    // 2. 不能删除最后一个管理员
+    // 2) Cannot delete the last admin
     if (staff.role === 'admin') {
       const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
       if (adminCount <= 1) {
@@ -188,20 +188,20 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
     return true
   }
 
-  // 🛡️ 新增：获取删除按钮的提示信息
+  // Get delete button tooltip
   const getDeleteTooltip = (staff: Staff) => {
     if (staff.id === currentUser.staffId) {
-      return "不能删除自己的账户"
+      return 'You cannot delete your own account'
     }
     
     if (staff.role === 'admin') {
       const adminCount = staffs.filter(s => s.role === 'admin' && s.isActive).length
       if (adminCount <= 1) {
-        return "不能删除最后一个系统管理员"
+        return 'You cannot delete the last system administrator'
       }
     }
     
-    return "删除此员工账户"
+    return 'Delete this staff account'
   }
 
   // Fetch active staff data from API
@@ -463,7 +463,6 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const clearFilters = () => {
     setSearchQuery('')
     setRoleFilter('all')
-    setStatusFilter('all')
     setSortBy('name')
     setSortDirection('asc')
   }
@@ -571,11 +570,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
       <Paper elevation={1} sx={{ mb: 3 }}>
         <Tabs 
           value={activeTab} 
-          onChange={(_, newValue) => {
-            setActiveTab(newValue)
-            // Keep status filter visually consistent with tab
-            setStatusFilter(newValue === 0 ? 'active' : 'inactive')
-          }}
+          onChange={(_, newValue) => setActiveTab(newValue)}
           variant="fullWidth"
           sx={{
             borderBottom: 1,
@@ -640,35 +635,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
               </FormControl>
             </Grid>
 
-            {/* Status Filter */}
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  // Lock status by current tab to avoid confusion
-                  value={activeTab === 0 ? 'active' : 'inactive'}
-                  label="Status"
-                  onChange={() => { /* locked by tab */ }}
-                  disabled
-                  sx={{
-                    '& .MuiSelect-select': {
-                      color: 'text.secondary'
-                    }
-                  }}
-                >
-                  <MenuItem value={activeTab === 0 ? 'active' : 'inactive'}>
-                    {activeTab === 0 ? 'Active' : 'Inactive'}
-                  </MenuItem>
-                </Select>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ mt: 0.5, fontSize: '0.7rem', lineHeight: 1.2 }}
-                >
-                  由上方标签页控制
-                </Typography>
-              </FormControl>
-            </Grid>
+            {/* Status filter removed: controlled by tabs */}
 
             {/* Sort Options */}
             <Grid item xs={12} sm={6} md={2}>
@@ -749,7 +716,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
             </Typography>
             
             {/* Active Filters Display */}
-            {(searchQuery || roleFilter !== 'all' || statusFilter !== 'all' || sortBy !== 'name') && (
+            {(searchQuery || roleFilter !== 'all' || sortBy !== 'name') && (
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {searchQuery && (
                   <Chip 
@@ -769,15 +736,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     variant="outlined" 
                   />
                 )}
-                {statusFilter !== 'all' && (
-                  <Chip 
-                    label={`Status: ${statusFilter}`} 
-                    size="small" 
-                    onDelete={() => setStatusFilter('all')}
-                    color="info" 
-                    variant="outlined" 
-                  />
-                )}
+                {/* Status chip removed: status is tab-controlled */}
                 {sortBy !== 'name' && (
                   <Chip 
                     label={`Sort: ${sortBy} (${sortDirection})`} 
