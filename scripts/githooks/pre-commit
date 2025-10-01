@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Enforce English-only in source code before commit
+
+set -euo pipefail
+
+python3 .github/scripts/check_no_cjk.py
+
+echo "Pre-commit check passed: no CJK characters in source."

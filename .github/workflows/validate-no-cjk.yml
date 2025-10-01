@@ -2,9 +2,9 @@ name: Validate No CJK In Source
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ '**' ]
   push:
-    branches: [ main ]
+    branches: [ '**' ]
 
 jobs:
   no-cjk:
@@ -16,4 +16,3 @@ jobs:
       - name: Run CJK check on source files
         run: |
           python3 .github/scripts/check_no_cjk.py
-

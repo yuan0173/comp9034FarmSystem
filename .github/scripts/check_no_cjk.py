@@ -7,6 +7,9 @@ from pathlib import Path
 ENFORCED_DIRS = [
     Path('frontendWebsite/src'),
     Path('backend/src'),
+    Path('frontendWebsite/tests'),
+    Path('backend/tests'),
+    Path('scripts'),
 ]
 ENFORCED_EXTS = {'.ts', '.tsx', '.js', '.jsx', '.cs'}
 
@@ -35,4 +38,3 @@ if violations:
 else:
     print('✅ No CJK characters detected in enforced source directories.')
     sys.exit(0)
-
