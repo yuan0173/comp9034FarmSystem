@@ -54,8 +54,8 @@ export function Login({ onLogin }: LoginProps) {
         return
       }
 
-      // Use the proper authentication API
-      const loginResponse = await authApi.login(email, password)
+      // Use the proper authentication API with a dedicated timeout
+      const loginResponse = await authApi.login(email, password, { timeout: 8000 })
       
       if (loginResponse && loginResponse.staff) {
         const currentUser: CurrentUser = {
@@ -89,9 +89,17 @@ export function Login({ onLogin }: LoginProps) {
       } else {
         throw new Error('Invalid login response')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error)
-      setError('Invalid email or password. Please try again.')
+      // Friendly messages for timeout / network / auth
+      const message = typeof error === 'string' ? error : error?.message || ''
+      if (message.toLowerCase().includes('timeout')) {
+        setError('Server is waking up. Please try again in a few seconds.')
+      } else if (message.toLowerCase().includes('network')) {
+        setError('Network issue detected. Please check your connection and try again.')
+      } else {
+        setError('Invalid email or password. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
