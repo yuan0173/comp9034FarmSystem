@@ -164,11 +164,12 @@ export const staffApi = {
 
 // Auth API
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const response = await httpClient.post('/api/Auth/login', {
-      email,
-      password
-    })
+  login: async (email: string, password: string, options?: { timeout?: number }) => {
+    const response = await httpClient.post(
+      '/api/Auth/login',
+      { email, password },
+      { timeout: options?.timeout ?? 10000 }
+    )
     return response.data
   },
 

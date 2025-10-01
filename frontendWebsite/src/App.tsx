@@ -36,6 +36,7 @@ import { AdminLoginHistory } from './pages/AdminLoginHistory'
 // Offline functionality
 import { initDB } from './offline/db'
 import { startAutoSync, stopAutoSync } from './offline/sync'
+import { httpClient } from './api/http'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -96,6 +97,14 @@ function App() {
 
         window.addEventListener('online', handleOnline)
         window.addEventListener('offline', handleOffline)
+
+        // Pre-warm backend to reduce first-login latency
+        try {
+          await httpClient.get('/health', { timeout: 5000 })
+        } catch (err) {
+          // Ignore pre-warm errors; backend may still be starting
+          console.warn('Backend pre-warm failed (will not block app):', err)
+        }
 
         // User state is automatically loaded from localStorage via Zustand persist
         setLoading(false)
