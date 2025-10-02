@@ -536,6 +536,62 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const activeStaffCount = staffs.filter(staff => staff.isActive).length
   const totalStaffCount = staffs.length
 
+  // Build unified filter + sort for Inactive list to match Active behavior
+  const filteredSortedInactiveStaffs = [...inactiveStaffs]
+    .filter(staff => {
+      // Reuse the same search filter as Active
+      const matchesSearch = !searchQuery || (
+        staff.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        staff.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        staff.id?.toString().includes(searchQuery) ||
+        staff.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        staff.phone?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+
+      // Reuse the same role filter
+      const matchesRole = roleFilter === 'all' || staff.role === roleFilter
+
+      return matchesSearch && matchesRole
+    })
+    .sort((a, b) => {
+      let aValue: any
+      let bValue: any
+
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name?.toLowerCase() || ''
+          bValue = b.name?.toLowerCase() || ''
+          break
+        case 'id':
+          aValue = a.id || 0
+          bValue = b.id || 0
+          break
+        case 'role':
+          aValue = a.role?.toLowerCase() || ''
+          bValue = b.role?.toLowerCase() || ''
+          break
+        case 'email':
+          aValue = a.email?.toLowerCase() || ''
+          bValue = b.email?.toLowerCase() || ''
+          break
+        case 'hourlyRate':
+          aValue = a.hourlyRate || 0
+          bValue = b.hourlyRate || 0
+          break
+        case 'createdAt':
+          aValue = new Date(a.createdAt || 0).getTime()
+          bValue = new Date(b.createdAt || 0).getTime()
+          break
+        default:
+          aValue = a.name?.toLowerCase() || ''
+          bValue = b.name?.toLowerCase() || ''
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+
   const getStatusColor = (isActive: boolean) => {
     return isActive ? 'success' : 'error'
   }
@@ -869,7 +925,7 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {inactiveStaffs.map(staff => (
+                    {filteredSortedInactiveStaffs.map(staff => (
                       <TableRow key={staff.id} sx={{ backgroundColor: 'grey.50' }}>
                         <TableCell>
                           <Typography variant="body2" fontWeight="bold">
