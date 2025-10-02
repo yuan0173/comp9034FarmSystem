@@ -536,28 +536,27 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
   const activeStaffCount = staffs.filter(staff => staff.isActive).length
   const totalStaffCount = staffs.length
 
-  // Build unified filter + sort for Inactive list to match Active behavior
-  const filteredSortedInactiveStaffs = [...inactiveStaffs]
-    .filter(staff => {
-      // Reuse the same search filter as Active
-      const matchesSearch = !searchQuery || (
-        staff.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        staff.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        staff.id?.toString().includes(searchQuery) ||
-        staff.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        staff.phone?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Helpers: reuse filtering and sorting logic across tabs
+  const filterStaffs = (list: Staff[], search: string, role: string): Staff[] => {
+    return list.filter(staff => {
+      const matchesSearch = !search || (
+        staff.name?.toLowerCase().includes(search.toLowerCase()) ||
+        staff.email?.toLowerCase().includes(search.toLowerCase()) ||
+        staff.id?.toString().includes(search) ||
+        staff.username?.toLowerCase().includes(search.toLowerCase()) ||
+        staff.phone?.toLowerCase().includes(search.toLowerCase())
       )
-
-      // Reuse the same role filter
-      const matchesRole = roleFilter === 'all' || staff.role === roleFilter
-
+      const matchesRole = role === 'all' || staff.role === role
       return matchesSearch && matchesRole
     })
-    .sort((a, b) => {
+  }
+
+  const sortStaffs = (list: Staff[], key: string, direction: 'asc' | 'desc'): Staff[] => {
+    const copied = [...list]
+    copied.sort((a, b) => {
       let aValue: any
       let bValue: any
-
-      switch (sortBy) {
+      switch (key) {
         case 'name':
           aValue = a.name?.toLowerCase() || ''
           bValue = b.name?.toLowerCase() || ''
@@ -586,11 +585,19 @@ export function AdminStaffs({ currentUser }: AdminStaffsProps) {
           aValue = a.name?.toLowerCase() || ''
           bValue = b.name?.toLowerCase() || ''
       }
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+      if (aValue < bValue) return direction === 'asc' ? -1 : 1
+      if (aValue > bValue) return direction === 'asc' ? 1 : -1
       return 0
     })
+    return copied
+  }
+
+  // Unified inactive list using helpers
+  const filteredSortedInactiveStaffs = sortStaffs(
+    filterStaffs(inactiveStaffs, searchQuery, roleFilter),
+    sortBy,
+    sortDirection
+  )
 
   const getStatusColor = (isActive: boolean) => {
     return isActive ? 'success' : 'error'
