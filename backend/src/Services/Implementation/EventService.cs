@@ -248,6 +248,17 @@ namespace COMP9034.Backend.Services.Implementation
                     throw new BusinessException("Staff member already has an active session", "ALREADY_CLOCKED_IN");
                 }
 
+                // Roster check: require an active schedule at current time
+                var now = DateTime.UtcNow;
+                var today = now.Date;
+                var nowTime = now.TimeOfDay;
+                var schedules = await _unitOfWork.WorkScheduleRepository.FindAsync(w => w.StaffId == staffId && w.Date == today);
+                bool isWithinRoster = schedules.Any(w => IsWithinShift(w, nowTime));
+                if (!isWithinRoster)
+                {
+                    return ApiResult<Event>.ErrorResult("No rostered shift exists at this time", "NO_ROSTER");
+                }
+
                 // Prevent duplicate IN within 1 minute
                 var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
                 var recentEvents = await _unitOfWork.EventRepository.GetEventsByStaffAndDateRangeAsync(staffId, oneMinuteAgo, DateTime.UtcNow);
@@ -327,6 +338,102 @@ namespace COMP9034.Backend.Services.Implementation
             {
                 _logger.LogError(ex, "Error occurred while clocking out staff member: {StaffId}", staffId);
                 return ApiResult<Event>.ErrorResult("Failed to clock out");
+            }
+        }
+
+        // Add: Admin override for clock-in (bypass roster rule, keep duplicate guard)
+        public async Task<ApiResult<Event>> ClockInOverrideAsync(int staffId, int adminId, string? reason = null, string? location = null)
+        {
+            try
+            {
+                var staff = await _unitOfWork.StaffRepository.GetByIdAsync(staffId);
+                if (staff == null) throw new BusinessException("Staff member not found", "STAFF_NOT_FOUND");
+
+                bool hasActiveSession = await _unitOfWork.EventRepository.HasActiveSessionAsync(staffId);
+                if (hasActiveSession)
+                {
+                    throw new BusinessException("Staff member already has an active session", "ALREADY_CLOCKED_IN");
+                }
+
+                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
+                var recentEvents = await _unitOfWork.EventRepository.GetEventsByStaffAndDateRangeAsync(staffId, oneMinuteAgo, DateTime.UtcNow);
+                if (recentEvents.Any(e => string.Equals(e.EventType, "IN", StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new BusinessException("Duplicate clock-in detected within 1 minute", "DUPLICATE_CLOCK_IN");
+                }
+
+                var clockInEvent = new Event
+                {
+                    StaffId = staffId,
+                    EventType = "IN",
+                    AdminId = adminId,
+                    Notes = string.IsNullOrWhiteSpace(reason) ? "Manual override clock-in" : $"Override: {reason}",
+                    Location = location,
+                    OccurredAt = DateTime.UtcNow
+                };
+
+                var createdEvent = await _unitOfWork.EventRepository.AddAsync(clockInEvent);
+                await _unitOfWork.SaveChangesAsync();
+                return ApiResult<Event>.SuccessResult(createdEvent, "Clocked in by override");
+            }
+            catch (BusinessException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during clock-in override: {StaffId}", staffId);
+                return ApiResult<Event>.ErrorResult("Failed to override clock-in");
+            }
+        }
+
+        // Add: Admin override for clock-out (bypass active-session rule)
+        public async Task<ApiResult<Event>> ClockOutOverrideAsync(int staffId, int adminId, string? reason = null, string? location = null)
+        {
+            try
+            {
+                var staff = await _unitOfWork.StaffRepository.GetByIdAsync(staffId);
+                if (staff == null) throw new BusinessException("Staff member not found", "STAFF_NOT_FOUND");
+
+                var clockOutEvent = new Event
+                {
+                    StaffId = staffId,
+                    EventType = "OUT",
+                    AdminId = adminId,
+                    Notes = string.IsNullOrWhiteSpace(reason) ? "Manual override clock-out" : $"Override: {reason}",
+                    Location = location,
+                    OccurredAt = DateTime.UtcNow
+                };
+
+                var createdEvent = await _unitOfWork.EventRepository.AddAsync(clockOutEvent);
+                await _unitOfWork.SaveChangesAsync();
+                return ApiResult<Event>.SuccessResult(createdEvent, "Clocked out by override");
+            }
+            catch (BusinessException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during clock-out override: {StaffId}", staffId);
+                return ApiResult<Event>.ErrorResult("Failed to override clock-out");
+            }
+        }
+
+        private static bool IsWithinShift(WorkSchedule schedule, TimeSpan current)
+        {
+            var start = schedule.StartTime;
+            var end = schedule.EndTime;
+            if (end < start)
+            {
+                // Overnight: treat end as next day
+                var endAdj = end + TimeSpan.FromHours(24);
+                var currentAdj = current < start ? current + TimeSpan.FromHours(24) : current;
+                return currentAdj >= start && currentAdj <= endAdj;
+            }
+            else
+            {
+                return current >= start && current <= end;
             }
         }
 
