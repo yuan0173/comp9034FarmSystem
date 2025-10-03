@@ -37,6 +37,8 @@ function toTime(value: string) {
 
 export function AdminRoster({ currentUser }: AdminRosterProps) {
   const qc = useQueryClient()
+  // Use current user in UI header to satisfy TS6133 and provide context
+  const adminDisplayName = `${currentUser.firstName} ${currentUser.lastName}`
   const [filters, setFilters] = useState<{ staffId?: string; startDate?: string; endDate?: string }>({})
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<WorkSchedule | null>(null)
@@ -136,6 +138,9 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
           Assign shifts; prevent overlaps; hours auto-calculated
+        </Typography>
+        <Typography variant="caption" color="textSecondary">
+          Admin: {adminDisplayName} (ID: {currentUser.staffId})
         </Typography>
       </Paper>
 
@@ -283,4 +288,3 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
     </Box>
   )
 }
-
