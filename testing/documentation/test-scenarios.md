@@ -75,6 +75,39 @@
   - ❌ Other staff data
   - ❌ System management features
 
+#### 2.4 RBAC Matrix (API Access)
+- Roles: unauthenticated, staff, manager, admin
+- Legend: 200 allowed, 401 unauthorized, 403 forbidden
+
+- Auth
+  - `POST /api/Auth/login`, `POST /api/Auth/register`: all → 200
+  - `PUT /api/Auth/change-password`, `GET /api/Auth/me`, `POST /api/Auth/logout`: unauthenticated → 401; staff/manager/admin → 200
+  - `GET /api/Auth/login-logs`, `DELETE /api/Auth/login-logs/{id}`: unauthenticated → 401; staff/manager → 403; admin → 200
+
+- Staffs
+  - `GET /api/Staffs`: unauthenticated → 401; staff → 403; manager/admin → 200
+  - `POST /api/Staffs`, `PUT /api/Staffs/{id}`, `DELETE /api/Staffs/{id}`: unauthenticated → 401; staff/manager → 403; admin → 200
+
+- Devices
+  - `GET /api/Devices`, `GET /api/Devices/{id}`: unauthenticated → 401; staff/manager/admin → 200
+  - `POST /api/Devices`, `PUT /api/Devices/{id}`, `DELETE /api/Devices/{id}`, `PATCH /api/Devices/{id}/status`: unauthenticated → 401; staff/manager → 403; admin → 200
+
+- Events
+  - `GET /api/Events` (query/filter): unauthenticated → 401; staff → 403; manager/admin → 200
+  - `POST /api/Events` (create event): unauthenticated → 401; staff/manager/admin → 200
+  - Station/Clock（如 `POST /api/Staffs/{id}/clock`）: unauthenticated → 401; staff 仅对本人→200，其他→403；admin 代操作→200
+
+- Audit
+  - `GET /api/Audit/{table}/{recordId}`: unauthenticated → 401; staff → 403; manager/admin → 200
+  - `GET /api/Audit/staff/{staffId}`, `GET /api/Audit/recent`: unauthenticated → 401; staff/manager → 403; admin → 200
+
+- Biometric（若启用）
+  - `GET /api/Biometric`/`{id}`: unauthenticated → 401; staff → 403；manager/admin → 200
+  - `POST /api/Biometric`, `PUT /api/Biometric/{id}`, `DELETE /api/Biometric/{id}`: unauthenticated → 401; staff/manager → 403；admin → 200
+
+Note
+- 矩阵为预期策略，测试应据此验证 200/401/403。若实际代码尚未加 `[Authorize]` 或角色限制，应记录差异并提 Issue/PR 修复。
+
 ### 3. API Endpoint Testing
 
 #### 3.1 Health Check Test

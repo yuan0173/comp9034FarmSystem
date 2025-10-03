@@ -19,12 +19,12 @@
 - PR 描述中需包含“已完成中文方案确认并获授权”的说明（或勾选 PR 模板中的对应项）。
 
 ## 分支命名（规范）
-- 功能/增强：`enhancement/yuan0173/<scope>/<kebab-描述>`
-- 缺陷修复：`bugfix/yuan0173/<scope>/<kebab-描述>`
+- 新功能：`feat/yuan0173/<scope>/<kebab-描述>`
+- 缺陷修复：`fix/yuan0173/<scope>/<kebab-描述>`
 - 文档：`docs/yuan0173/docs/<kebab-描述>`
 - 示例：
-  - `enhancement/yuan0173/frontend/english-date-format-ddmmyy`
-  - `bugfix/yuan0173/frontend/admin-staffs-active-tab-filter`
+  - `feat/yuan0173/frontend/english-date-format-ddmmyy`
+  - `fix/yuan0173/frontend/admin-staffs-active-tab-filter`
   - `docs/yuan0173/docs/production-test-summary-2025-09-30`
 
 ## 实施修改（示例要点）
@@ -43,19 +43,19 @@
   - 种子：幂等补齐 `9001/8001/1001/2001`
   - 控制器：`StaffsController` 注入 `ApplicationDbContext` 并恢复编译
 - 文档：
-  - 路径：`claude/docs/...`（如被 .gitignore 忽略，需强制 `git add -f`）
+  - 路径：`claude/docs/...`（优先正常纳管，不使用 `-f`；仅当确因 `.gitignore` 规则排除时再使用 `git add -f`，并在 PR 中说明原因）
 
 ## 提交信息（Conventional Commits）
-- `enhancement(frontend): switch date/time locale to en-GB (DD/MM/YY, 24h HH:MM)`
+- `feat(frontend): switch date/time locale to en-GB (DD/MM/YY, 24h HH:MM)`
 - `fix(frontend): ensure Active Staff tab shows only active staff`
-- `enhancement(frontend): lock Status filter to current tab (Active/Inactive)`
+- `feat(frontend): lock Status filter to current tab (Active/Inactive)`
 - `fix(database): quote filtered index on Staff.Username to avoid 42703`
 - `fix(seed): make staff seeding idempotent and ensure missing test accounts are created`
 - `fix(backend): include StaffsController in build and inject ApplicationDbContext`
 - `docs: add production environment test summary (YYYY-MM-DD)`
 - `chore(frontend): update development environment API base URL to Render backend`
 
-## PR 模板（英文，纯文本，无加粗）
+## PR 模板（英文，允许使用 Markdown 结构）
 - 首行须注明：`[x] 中文方案已与仓库所有者确认并获得授权`
 - Title：`<type(scope): concise description>`
 - Summary：说明修复/功能点与原因
@@ -71,9 +71,10 @@
 - 暂存/提交：`git add <files>` → `git commit -m "<title>" -m "<details>"`
 - 推送：`git push -u origin <branch-name>`
 - 创建 PR：`gh pr create --title "<title>" --body "<body>" --base main --head <branch-name>`
-- 合并：`gh pr merge <PR#> --merge --delete-branch --admin`
+- 合并：`gh pr merge <PR#> --merge --delete-branch --admin`（仅仓库维护者使用；普通贡献者请在 GitHub UI 发起并由维护者合并）
 
 ## 合并后验证（后端）
+- 生产环境：Render（后端示例：https://comp9034farmsystem-backend.onrender.com）
 - Render 部署日志：
   - 解析 PostgreSQL 连接（不打印密钥）
   - 迁移成功（无 42703/“relation 不存在”）
@@ -83,6 +84,16 @@
   - 生产用双下划线数组：`AllowedOrigins__0=https://yuan0173.github.io`
   - curl 预检：204 + 正确 CORS 头
 - JWT：`JWT_SECRET_KEY / JWT_ISSUER / JWT_AUDIENCE`（或兼容的 `Jwt__*`）
+
+- Swagger（本地开发环境检查）：
+  - Swagger UI 可访问，存在 Bearer 安全定义（Authorize 按钮）
+  - 受保护接口在 Swagger 中要求授权后试调
+
+- RBAC 冒烟用例（使用不同角色 Token 调用关键接口）：
+  - 未携带 Token 访问受保护接口 → 401 Unauthorized
+  - Staff 访问 Admin-only 接口（如 Staff 管理写操作）→ 403 Forbidden
+  - Staff 在“打卡站”相关接口（若提供）→ 200 并返回预期结果
+  - Admin/Manager 访问事件查询/管理接口 → 200，数据符合权限预期
 
 ## 合并后验证（前端）
 - 时间格式：`DD/MM/YY HH:MM（24h）` → AdminLoginHistory、Station、NetworkBadge、AdminStaffs、AdminEvents
