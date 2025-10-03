@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using COMP9034.Backend.Data;
 using COMP9034.Backend.Models;
 using COMP9034.Backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace COMP9034.Backend.Controllers
 {
@@ -16,12 +17,14 @@ namespace COMP9034.Backend.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<EventsController> _logger;
         private readonly IEventService _eventService;
+        private readonly COMP9034.Backend.Services.IAuditService _auditService;
 
-        public EventsController(ApplicationDbContext context, ILogger<EventsController> logger, IEventService eventService)
+        public EventsController(ApplicationDbContext context, ILogger<EventsController> logger, IEventService eventService, COMP9034.Backend.Services.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
             _eventService = eventService;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -235,6 +238,12 @@ namespace COMP9034.Backend.Controllers
                     var result = await _eventService.ClockInAsync(eventRequest.StaffId ?? 0);
                     if (!result.Success)
                     {
+                        // Log reject when no roster
+                        if (string.Equals(result.Code, "NO_ROSTER", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var ip = GetClientIpAddress();
+                            await _auditService.LogAsync("Events", "REJECT", (eventRequest.StaffId ?? 0).ToString(), 0, ip, null, new { reason = result.Message });
+                        }
                         return BadRequest(new { message = result.Message, code = result.Code });
                     }
                     return CreatedAtAction(nameof(GetEvent), new { id = result.Data!.EventId }, result.Data);
@@ -273,6 +282,71 @@ namespace COMP9034.Backend.Controllers
                 _logger.LogError(ex, "Error occurred while creating event");
                 return StatusCode(500, new { message = "Failed to create event", error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Admin override clock-in (bypass roster rule) with reason; audited
+        /// Fulfills F3-FR4 and F3-FR6
+        /// </summary>
+        [HttpPost("override/clock-in")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult> OverrideClockIn([FromBody] OverrideRequest body)
+        {
+            var adminId = GetCurrentUserId();
+            if (!adminId.HasValue) return Unauthorized(new { message = "User not authenticated" });
+
+            var result = await _eventService.ClockInOverrideAsync(body.StaffId, adminId.Value, body.Reason);
+            if (!result.Success)
+            {
+                return BadRequest(new { message = result.Message, code = result.Code });
+            }
+
+            var ip = GetClientIpAddress();
+            await _auditService.LogAsync("Events", "OVERRIDE", result.Data!.EventId.ToString(), adminId.Value, ip, null, new { reason = body.Reason });
+            return Ok(new { message = "Clock-in override recorded", eventId = result.Data!.EventId });
+        }
+
+        /// <summary>
+        /// Admin override clock-out with reason; audited
+        /// </summary>
+        [HttpPost("override/clock-out")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult> OverrideClockOut([FromBody] OverrideRequest body)
+        {
+            var adminId = GetCurrentUserId();
+            if (!adminId.HasValue) return Unauthorized(new { message = "User not authenticated" });
+
+            var result = await _eventService.ClockOutOverrideAsync(body.StaffId, adminId.Value, body.Reason);
+            if (!result.Success)
+            {
+                return BadRequest(new { message = result.Message, code = result.Code });
+            }
+
+            var ip = GetClientIpAddress();
+            await _auditService.LogAsync("Events", "OVERRIDE", result.Data!.EventId.ToString(), adminId.Value, ip, null, new { reason = body.Reason });
+            return Ok(new { message = "Clock-out override recorded", eventId = result.Data!.EventId });
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var staffIdClaim = User.FindFirst(TokenClaims.StaffId)?.Value;
+            if (int.TryParse(staffIdClaim, out int staffId)) return staffId;
+            return null;
+        }
+
+        private string GetClientIpAddress()
+        {
+            var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(forwardedFor)) return forwardedFor.Split(',')[0].Trim();
+            var realIp = Request.Headers["X-Real-IP"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(realIp)) return realIp;
+            return Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        }
+
+        public class OverrideRequest
+        {
+            public int StaffId { get; set; }
+            public string? Reason { get; set; }
         }
 
         /// <summary>
