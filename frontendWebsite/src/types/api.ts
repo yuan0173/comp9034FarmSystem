@@ -147,4 +147,21 @@ export interface PayslipData extends WorkHoursData {
   staffName: string
   grossPay: number
   standardPayRate: number
-} 
+}
+
+// Roster / WorkSchedule types
+export interface WorkSchedule {
+  scheduleId: number
+  staffId: number
+  date: string // ISO date string (yyyy-MM-dd)
+  startTime: string // HH:mm:ss
+  endTime: string // HH:mm:ss
+  scheduleHours: number
+}
+
+export interface WorkScheduleCreate {
+  staffId: number
+  date: string // ISO date string
+  startTime: string // HH:mm:ss
+  endTime: string // HH:mm:ss
+}
