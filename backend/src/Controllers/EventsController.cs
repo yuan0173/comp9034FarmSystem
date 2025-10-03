@@ -236,25 +236,25 @@ namespace COMP9034.Backend.Controllers
                 if (type == "IN")
                 {
                     var result = await _eventService.ClockInAsync(eventRequest.StaffId ?? 0);
-                    if (!result.Success)
-                    {
-                        // Log reject when no roster
-                        if (string.Equals(result.Code, "NO_ROSTER", StringComparison.OrdinalIgnoreCase))
+                        if (!result.Success)
                         {
-                            var ip = GetClientIpAddress();
-                            await _auditService.LogAsync("Events", "REJECT", (eventRequest.StaffId ?? 0).ToString(), 0, ip, null, new { reason = result.Message });
+                            // Log reject when no roster
+                            if (string.Equals(result.ErrorCode, "NO_ROSTER", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var ip = GetClientIpAddress();
+                                await _auditService.LogAsync("Events", "REJECT", (eventRequest.StaffId ?? 0).ToString(), 0, ip, null, new { reason = result.Message });
+                            }
+                            return BadRequest(new { message = result.Message, code = result.ErrorCode });
                         }
-                        return BadRequest(new { message = result.Message, code = result.Code });
-                    }
                     return CreatedAtAction(nameof(GetEvent), new { id = result.Data!.EventId }, result.Data);
                 }
                 if (type == "OUT")
                 {
                     var result = await _eventService.ClockOutAsync(eventRequest.StaffId ?? 0);
-                    if (!result.Success)
-                    {
-                        return BadRequest(new { message = result.Message, code = result.Code });
-                    }
+                        if (!result.Success)
+                        {
+                            return BadRequest(new { message = result.Message, code = result.ErrorCode });
+                        }
                     return CreatedAtAction(nameof(GetEvent), new { id = result.Data!.EventId }, result.Data);
                 }
 
@@ -298,7 +298,7 @@ namespace COMP9034.Backend.Controllers
             var result = await _eventService.ClockInOverrideAsync(body.StaffId, adminId.Value, body.Reason);
             if (!result.Success)
             {
-                return BadRequest(new { message = result.Message, code = result.Code });
+                return BadRequest(new { message = result.Message, code = result.ErrorCode });
             }
 
             var ip = GetClientIpAddress();
@@ -319,7 +319,7 @@ namespace COMP9034.Backend.Controllers
             var result = await _eventService.ClockOutOverrideAsync(body.StaffId, adminId.Value, body.Reason);
             if (!result.Success)
             {
-                return BadRequest(new { message = result.Message, code = result.Code });
+                return BadRequest(new { message = result.Message, code = result.ErrorCode });
             }
 
             var ip = GetClientIpAddress();
