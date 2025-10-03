@@ -22,7 +22,7 @@ import {
 } from '@mui/icons-material'
 import { CurrentUser, EVENT_TYPES, Event } from '../types/api'
 import { enqueueEvent } from '../offline/sync'
-import { eventApi } from '../api/client'
+import { eventApi, eventOverridesApi } from '../api/client'
 import { formatDateTime } from '../utils/time'
 import { useQuery } from '@tanstack/react-query'
 
@@ -119,7 +119,49 @@ export function Station({ currentUser }: StationProps) {
         adminId: 0,
       }
 
-      await enqueueEvent(eventDraft)
+      // Try online first for immediate feedback (use existing offline queue as fallback)
+      try {
+        await eventApi.create(eventDraft as any)
+      } catch (err: any) {
+        // If known business error, show message and offer override for admin
+        const code = err?.code || err?.error || ''
+        const msg = err?.message || 'Failed to record event.'
+
+        // Business codes from backend: NO_ROSTER, DUPLICATE_CLOCK_IN/OUT, NOT_CLOCKED_IN, ALREADY_CLOCKED_IN
+        if (code) {
+          setMessage({ type: 'error', text: `${msg} (${code})` })
+
+          // Admin override flow for clock-in/out blocks
+          const isAdmin = currentUser.role === 'admin'
+          const canOverride = isAdmin && (code === 'NO_ROSTER' || code === 'NOT_CLOCKED_IN')
+          if (canOverride) {
+            const reason = window.prompt('Override reason (required):') || ''
+            if (reason.trim()) {
+              try {
+                if (eventType === 'IN') {
+                  await eventOverridesApi.clockIn(currentUser.staffId, reason.trim())
+                } else if (eventType === 'OUT') {
+                  await eventOverridesApi.clockOut(currentUser.staffId, reason.trim())
+                }
+                setMessage({ type: 'success', text: 'Override recorded successfully.' })
+                refetchEvents()
+                setIsSubmitting(false)
+                return
+              } catch (e: any) {
+                setMessage({ type: 'error', text: e?.message || 'Override failed.' })
+                setIsSubmitting(false)
+                return
+              }
+            }
+          }
+
+          setIsSubmitting(false)
+          return
+        }
+
+        // If not a known business error, fallback to offline queue
+        await enqueueEvent(eventDraft)
+      }
 
       setMessage({
         type: 'success',

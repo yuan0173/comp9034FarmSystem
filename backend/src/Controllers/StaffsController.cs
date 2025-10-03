@@ -145,7 +145,7 @@ namespace COMP9034.Backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while getting inactive staffs");
-                return StatusCode(500, new { message = "获取已删除员工失败", error = ex.Message });
+                return StatusCode(500, new { message = "Failed to get inactive staff", error = ex.Message });
             }
         }
 
@@ -176,7 +176,7 @@ namespace COMP9034.Backend.Controllers
 
                 if (staff == null)
                 {
-                    return NotFound(new { message = "找不到已删除的员工记录" });
+                    return NotFound(new { message = "Deleted staff record not found" });
                 }
 
                 // Restore staff
@@ -190,12 +190,12 @@ namespace COMP9034.Backend.Controllers
                     currentUserId.Value, ipAddress, $"Restored staff: {staff.FirstName} {staff.LastName}");
 
                 _logger.LogInformation($"Staff restored by user {currentUserId}: ID={id}, Name={staff.FirstName} {staff.LastName}");
-                return Ok(new { message = "员工账户已成功恢复" });
+                return Ok(new { message = "Staff account restored successfully" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error occurred while restoring staff ID:{id}");
-                return StatusCode(500, new { message = "恢复员工失败", error = ex.Message });
+                return StatusCode(500, new { message = "Failed to restore staff", error = ex.Message });
             }
         }
 
@@ -439,14 +439,14 @@ namespace COMP9034.Backend.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                // 🛡️ 关键安全检查
-                // 1. 防止用户删除自己
+                // Key security checks
+                // 1) Prevent user from deleting themselves
                 if (currentUserId.Value == id)
                 {
-                    return BadRequest(new { message = "您不能删除自己的账户" });
+                    return BadRequest(new { message = "You cannot delete your own account" });
                 }
 
-                // 2. 防止删除最后一个管理员
+                // 2) Prevent deleting the last administrator
                 var targetStaffRole = staff.GetRoleFromId();
                 if (targetStaffRole == "admin")
                 {
@@ -456,11 +456,11 @@ namespace COMP9034.Backend.Controllers
                     
                     if (adminCount <= 1)
                     {
-                        return BadRequest(new { message = "不能删除最后一个系统管理员" });
+                        return BadRequest(new { message = "Cannot delete the last system administrator" });
                     }
                 }
 
-                // 3. 权限检查：只有管理员可以删除其他员工
+                // 3) Permission check: only administrators can delete other staff
                 var currentUser = await _context.Staff.FindAsync(currentUserId.Value);
                 if (currentUser?.GetRoleFromId()?.ToLower() != "admin")
                 {
@@ -478,12 +478,12 @@ namespace COMP9034.Backend.Controllers
                     currentUserId.Value, ipAddress, $"Deleted staff: {staff.FirstName} {staff.LastName}");
 
                 _logger.LogInformation($"Staff deleted by user {currentUserId}: ID={id}, Name={staff.FirstName} {staff.LastName}");
-                return Ok(new { message = "员工已成功删除" });
+                return Ok(new { message = "Staff deleted successfully" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error occurred while deleting staff ID:{id}");
-                return StatusCode(500, new { message = "删除员工失败", error = ex.Message });
+                return StatusCode(500, new { message = "Failed to delete staff", error = ex.Message });
             }
         }
 

@@ -103,6 +103,42 @@ export const eventApi = {
   }
 }
 
+// WorkSchedule (Roster) API
+export const workScheduleApi = {
+  getAll: async (query?: { staffId?: number; startDate?: string; endDate?: string; limit?: number; offset?: number }) => {
+    const params = new URLSearchParams()
+    if (query?.staffId) params.append('staffId', String(query.staffId))
+    if (query?.startDate) params.append('startDate', query.startDate)
+    if (query?.endDate) params.append('endDate', query.endDate)
+    if (query?.limit) params.append('limit', String(query.limit))
+    if (query?.offset) params.append('offset', String(query.offset))
+    const res = await httpClient.get(`/api/WorkSchedule?${params.toString()}`)
+    return res.data
+  },
+  create: async (data: { staffId: number; date: string; startTime: string; endTime: string }) => {
+    const res = await httpClient.post('/api/WorkSchedule', data)
+    return res.data
+  },
+  update: async (id: number, data: { staffId: number; date: string; startTime: string; endTime: string }) => {
+    await httpClient.put(`/api/WorkSchedule/${id}`, data)
+  },
+  delete: async (id: number) => {
+    await httpClient.delete(`/api/WorkSchedule/${id}`)
+  },
+}
+
+// Event overrides (admin only)
+export const eventOverridesApi = {
+  clockIn: async (staffId: number, reason?: string) => {
+    const res = await httpClient.post('/api/Events/override/clock-in', { staffId, reason })
+    return res.data
+  },
+  clockOut: async (staffId: number, reason?: string) => {
+    const res = await httpClient.post('/api/Events/override/clock-out', { staffId, reason })
+    return res.data
+  },
+}
+
 // Login History API
 export const loginHistoryApi = {
   getAll: async (query?: { limit?: number; offset?: number }): Promise<any[]> => {
