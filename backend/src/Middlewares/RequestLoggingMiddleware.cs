@@ -1,7 +1,7 @@
 namespace COMP9034.Backend.Middlewares
 {
     /// <summary>
-    /// 请求日志中间件
+    /// Request logging middleware
     /// </summary>
     public class RequestLoggingMiddleware
     {
@@ -39,7 +39,7 @@ namespace COMP9034.Backend.Middlewares
                 var duration = DateTime.UtcNow - startTime;
                 
                 _logger.LogInformation(
-                    "[{RequestId}] {Method} {Path} - 请求完成 {StatusCode} ({Duration}ms)",
+                    "[{RequestId}] {Method} {Path} - Completed {StatusCode} ({Duration}ms)",
                     requestId,
                     context.Request.Method,
                     context.Request.Path,
@@ -51,7 +51,7 @@ namespace COMP9034.Backend.Middlewares
     }
 
     /// <summary>
-    /// 请求日志中间件扩展
+    /// Request logging middleware extensions
     /// </summary>
     public static class RequestLoggingMiddlewareExtensions
     {

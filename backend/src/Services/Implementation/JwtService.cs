@@ -25,7 +25,7 @@ namespace COMP9034.Backend.Services
             _logger = logger;
             _secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
                 _configuration["Jwt:SecretKey"] ?? 
-                "0634178ecb250a5766e4d873595b429f"; // 与Render环境变量一致
+                "0634178ecb250a5766e4d873595b429f"; // Aligned with Render environment variable default
             _issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? 
                 _configuration["Jwt:Issuer"] ?? 
                 "COMP9034-FarmTimeMS";
