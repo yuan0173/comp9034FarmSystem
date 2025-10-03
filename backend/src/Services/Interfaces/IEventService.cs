@@ -19,6 +19,9 @@ namespace COMP9034.Backend.Services.Interfaces
         Task<ApiResult<bool>> DeleteEventAsync(int id);
         Task<ApiResult<Event>> ClockInAsync(int staffId, string? location = null);
         Task<ApiResult<Event>> ClockOutAsync(int staffId, string? location = null);
+        // Admin overrides
+        Task<ApiResult<Event>> ClockInOverrideAsync(int staffId, int adminId, string? reason = null, string? location = null);
+        Task<ApiResult<Event>> ClockOutOverrideAsync(int staffId, int adminId, string? reason = null, string? location = null);
         Task<ApiResult<bool>> HasActiveSessionAsync(int staffId);
         Task<ApiResult<double>> GetDailyWorkHoursAsync(int staffId, DateTime date);
         Task<ApiResult<double>> GetWeeklyWorkHoursAsync(int staffId, DateTime weekStartDate);
