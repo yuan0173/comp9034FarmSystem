@@ -102,6 +102,12 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
+    text: 'Roster Management',
+    icon: <CalendarMonth />,
+    path: '/admin/roster',
+    roles: ['admin'],
+  },
+  {
     text: 'Login History',
     icon: <History />,
     path: '/admin/login-history',

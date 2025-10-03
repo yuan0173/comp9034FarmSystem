@@ -29,6 +29,7 @@ import { AdminStaffs } from './pages/AdminStaffs'
 import { AdminDevices } from './pages/AdminDevices'
 import { AdminEvents } from './pages/AdminEvents'
 import { AdminLoginHistory } from './pages/AdminLoginHistory'
+import { AdminRoster } from './pages/AdminRoster'
 // All admin pages are now imported above
 
 // Types - imported for type definitions used in components
@@ -265,6 +266,16 @@ function App() {
                   element={
                     currentUser?.role === 'admin' ? (
                       <AdminEvents currentUser={currentUser} />
+                    ) : (
+                      <Navigate to="/login" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="admin/roster"
+                  element={
+                    currentUser?.role === 'admin' ? (
+                      <AdminRoster currentUser={currentUser} />
                     ) : (
                       <Navigate to="/login" replace />
                     )
