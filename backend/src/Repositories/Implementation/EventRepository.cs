@@ -54,10 +54,10 @@ namespace COMP9034.Backend.Repositories.Implementation
         public async Task<IEnumerable<Event>> GetActiveEventsAsync()
         {
             return await _dbSet
-                .Where(e => e.EventType == "ClockIn")
+                .Where(e => e.EventType == "IN")
                 .Where(e => !_dbSet.Any(clockOut =>
                     clockOut.StaffId == e.StaffId &&
-                    clockOut.EventType == "ClockOut" &&
+                    clockOut.EventType == "OUT" &&
                     clockOut.OccurredAt > e.OccurredAt))
                 .OrderBy(e => e.OccurredAt)
                 .ToListAsync();
@@ -125,7 +125,7 @@ namespace COMP9034.Backend.Repositories.Implementation
         public async Task<bool> HasActiveSessionAsync(int staffId)
         {
             var latestEvent = await GetLatestEventByStaffIdAsync(staffId);
-            return latestEvent != null && latestEvent.EventType == "ClockIn";
+            return latestEvent != null && latestEvent.EventType == "IN";
         }
 
         public async Task<double> GetDailyWorkHoursAsync(int staffId, DateTime date)
@@ -140,11 +140,11 @@ namespace COMP9034.Backend.Repositories.Implementation
 
             foreach (var evt in events.OrderBy(e => e.OccurredAt))
             {
-                if (evt.EventType == "ClockIn")
+                if (evt.EventType == "IN")
                 {
                     clockInEvent = evt;
                 }
-                else if (evt.EventType == "ClockOut" && clockInEvent != null)
+                else if (evt.EventType == "OUT" && clockInEvent != null)
                 {
                     totalHours += (evt.OccurredAt - clockInEvent.OccurredAt).TotalHours;
                     clockInEvent = null;

@@ -32,7 +32,7 @@ namespace COMP9034.Backend.Models
         public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// eventType: Type of event (CLOCK_IN, CLOCK_OUT, BREAK_START, BREAK_END, MANUAL_OVERRIDE)
+        /// eventType: Type of event (IN, OUT, BREAK_START, BREAK_END, MANUAL_OVERRIDE)
         /// </summary>
         [Required]
         [MaxLength(20)]
@@ -88,7 +88,7 @@ namespace COMP9034.Backend.Models
         /// Check if this is a clock event (in/out)
         /// </summary>
         [NotMapped]
-        public bool IsClockEvent => EventType == "CLOCK_IN" || EventType == "CLOCK_OUT";
+        public bool IsClockEvent => EventType == "IN" || EventType == "OUT";
 
         /// <summary>
         /// Get formatted timestamp for display
@@ -145,7 +145,7 @@ namespace COMP9034.Backend.Models
         /// </summary>
         public bool IsValidEventType()
         {
-            var validTypes = new[] { "CLOCK_IN", "CLOCK_OUT", "BREAK_START", "BREAK_END", "MANUAL_OVERRIDE" };
+            var validTypes = new[] { "IN", "OUT", "BREAK_START", "BREAK_END", "MANUAL_OVERRIDE" };
             return validTypes.Contains(EventType);
         }
 

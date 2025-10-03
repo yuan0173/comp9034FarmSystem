@@ -248,10 +248,18 @@ namespace COMP9034.Backend.Services.Implementation
                     throw new BusinessException("Staff member already has an active session", "ALREADY_CLOCKED_IN");
                 }
 
+                // Prevent duplicate IN within 1 minute
+                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
+                var recentEvents = await _unitOfWork.EventRepository.GetEventsByStaffAndDateRangeAsync(staffId, oneMinuteAgo, DateTime.UtcNow);
+                if (recentEvents.Any(e => string.Equals(e.EventType, "IN", StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new BusinessException("Duplicate clock-in detected within 1 minute", "DUPLICATE_CLOCK_IN");
+                }
+
                 var clockInEvent = new Event
                 {
                     StaffId = staffId,
-                    EventType = "ClockIn",
+                    EventType = "IN",
                     Location = location,
                     OccurredAt = DateTime.UtcNow
                 };
@@ -289,10 +297,18 @@ namespace COMP9034.Backend.Services.Implementation
                     throw new BusinessException("Staff member does not have an active session", "NOT_CLOCKED_IN");
                 }
 
+                // Prevent duplicate OUT within 1 minute
+                var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
+                var recentEvents = await _unitOfWork.EventRepository.GetEventsByStaffAndDateRangeAsync(staffId, oneMinuteAgo, DateTime.UtcNow);
+                if (recentEvents.Any(e => string.Equals(e.EventType, "OUT", StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new BusinessException("Duplicate clock-out detected within 1 minute", "DUPLICATE_CLOCK_OUT");
+                }
+
                 var clockOutEvent = new Event
                 {
                     StaffId = staffId,
-                    EventType = "ClockOut",
+                    EventType = "OUT",
                     Location = location,
                     OccurredAt = DateTime.UtcNow
                 };

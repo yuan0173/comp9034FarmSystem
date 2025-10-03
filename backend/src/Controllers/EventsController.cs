@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using COMP9034.Backend.Data;
 using COMP9034.Backend.Models;
+using COMP9034.Backend.Services.Interfaces;
 
 namespace COMP9034.Backend.Controllers
 {
@@ -14,11 +15,13 @@ namespace COMP9034.Backend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<EventsController> _logger;
+        private readonly IEventService _eventService;
 
-        public EventsController(ApplicationDbContext context, ILogger<EventsController> logger)
+        public EventsController(ApplicationDbContext context, ILogger<EventsController> logger, IEventService eventService)
         {
             _context = context;
             _logger = logger;
+            _eventService = eventService;
         }
 
         /// <summary>
@@ -42,6 +45,29 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
+                // Query param aliases from frontend: type, from, to
+                if (string.IsNullOrWhiteSpace(eventType))
+                {
+                    var alias = Request.Query["type"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(alias)) eventType = alias;
+                }
+                if (!startDate.HasValue)
+                {
+                    var from = Request.Query["from"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(from) && DateTime.TryParse(from, out var parsedFrom))
+                    {
+                        startDate = parsedFrom;
+                    }
+                }
+                if (!endDate.HasValue)
+                {
+                    var to = Request.Query["to"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(to) && DateTime.TryParse(to, out var parsedTo))
+                    {
+                        endDate = parsedTo;
+                    }
+                }
+
                 var query = _context.Events
                     .Include(e => e.Staff)
                     .Include(e => e.Device)
@@ -58,6 +84,16 @@ namespace COMP9034.Backend.Controllers
                 if (!string.IsNullOrWhiteSpace(eventType))
                 {
                     query = query.Where(e => e.EventType == eventType);
+                }
+
+                // Optional filters: deviceId, adminId
+                if (int.TryParse(Request.Query["deviceId"].FirstOrDefault(), out var deviceId))
+                {
+                    query = query.Where(e => e.DeviceId == deviceId);
+                }
+                if (int.TryParse(Request.Query["adminId"].FirstOrDefault(), out var adminId))
+                {
+                    query = query.Where(e => e.AdminId == adminId);
                 }
 
                 // Apply date range filter
@@ -192,13 +228,32 @@ namespace COMP9034.Backend.Controllers
                     }
                 }
 
-                // Set default timestamp if not provided
+                // Route IN/OUT to EventService for business validation
+                var type = eventRequest.EventType?.ToUpperInvariant();
+                if (type == "IN")
+                {
+                    var result = await _eventService.ClockInAsync(eventRequest.StaffId ?? 0);
+                    if (!result.Success)
+                    {
+                        return BadRequest(new { message = result.Message, code = result.Code });
+                    }
+                    return CreatedAtAction(nameof(GetEvent), new { id = result.Data!.EventId }, result.Data);
+                }
+                if (type == "OUT")
+                {
+                    var result = await _eventService.ClockOutAsync(eventRequest.StaffId ?? 0);
+                    if (!result.Success)
+                    {
+                        return BadRequest(new { message = result.Message, code = result.Code });
+                    }
+                    return CreatedAtAction(nameof(GetEvent), new { id = result.Data!.EventId }, result.Data);
+                }
+
+                // For other event types, create directly
                 if (eventRequest.TimeStamp == default(DateTime))
                 {
                     eventRequest.TimeStamp = DateTime.UtcNow;
                 }
-
-                // Set creation timestamp
                 eventRequest.CreatedAt = DateTime.UtcNow;
 
                 _context.Events.Add(eventRequest);
