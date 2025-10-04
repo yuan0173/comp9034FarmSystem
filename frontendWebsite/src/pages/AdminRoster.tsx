@@ -21,8 +21,10 @@ import {
   IconButton,
   Alert,
 } from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
+import CircularProgress from '@mui/material/CircularProgress'
 import { Add, Edit, Delete } from '@mui/icons-material'
-import { workScheduleApi } from '../api/client'
+import { workScheduleApi, staffApi } from '../api/client'
 import { CurrentUser, WorkSchedule } from '../types/api'
 
 interface AdminRosterProps {
@@ -49,6 +51,18 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
     endTime: '',
   })
   const [error, setError] = useState<string | null>(null)
+  const [staffInput, setStaffInput] = useState('')
+  const [selectedStaff, setSelectedStaff] = useState<any | null>(null)
+
+  // Debounced staff search using React Query
+  const [staffSearchTerm, setStaffSearchTerm] = useState('')
+  const staffQuery = useQuery({
+    queryKey: ['staff-search', staffSearchTerm],
+    queryFn: () => staffApi.search(staffSearchTerm),
+    enabled: staffSearchTerm.length > 0 && dialogOpen,
+    staleTime: 60_000,
+    keepPreviousData: true,
+  })
 
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['workSchedules', filters],
@@ -239,11 +253,46 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
           )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
-              <TextField
-                label="Staff ID"
-                fullWidth
-                value={form.staffId}
-                onChange={e => setForm(prev => ({ ...prev, staffId: e.target.value }))}
+              <Autocomplete
+                options={(staffQuery.data || []) as any[]}
+                getOptionLabel={(option: any) => `${option.firstName} ${option.lastName} (${option.staffId}) - ${option.email}`}
+                loading={staffQuery.isLoading}
+                value={selectedStaff}
+                onChange={(_, value) => {
+                  setSelectedStaff(value)
+                  setForm(prev => ({ ...prev, staffId: value ? String(value.staffId) : '' }))
+                }}
+                inputValue={staffInput}
+                onInputChange={(_, value) => {
+                  setStaffInput(value)
+                  // Simple debounce: delay term update by 300ms
+                  const v = value.trim()
+                  if (!v) {
+                    setStaffSearchTerm('')
+                  } else {
+                    setTimeout(() => {
+                      // only update if input hasn't changed further
+                      if (value === v) setStaffSearchTerm(v)
+                    }, 300)
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Staff"
+                    placeholder="Type name/email/ID"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {staffQuery.isFetching ? <CircularProgress color="inherit" size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
               />
             </Grid>
             <Grid item xs={12} sm={6}>

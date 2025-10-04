@@ -47,6 +47,12 @@ namespace COMP9034.Backend.Controllers
         {
             try
             {
+                // Accept alias: query -> search (frontend compatibility)
+                if (string.IsNullOrWhiteSpace(search))
+                {
+                    var alias = Request.Query["query"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(alias)) search = alias;
+                }
                 // Convert offset-based pagination to page-based
                 int pageNumber = (offset / (limit ?? 50)) + 1;
                 int pageSize = limit ?? 50;
