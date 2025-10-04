@@ -43,7 +43,8 @@ namespace COMP9034.Backend.Controllers
             [FromQuery] int? limit = null,
             [FromQuery] int offset = 0,
             [FromQuery] string? search = null,
-            [FromQuery] string? role = null)
+            [FromQuery] string? role = null,
+            [FromQuery] bool? isActive = null)
         {
             try
             {
@@ -53,11 +54,28 @@ namespace COMP9034.Backend.Controllers
                     var alias = Request.Query["query"].FirstOrDefault();
                     if (!string.IsNullOrWhiteSpace(alias)) search = alias;
                 }
+                // Accept alias: activeOnly -> isActive=true
+                if (!isActive.HasValue)
+                {
+                    var activeOnly = Request.Query["activeOnly"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(activeOnly) && bool.TryParse(activeOnly, out var ao) && ao)
+                    {
+                        isActive = true;
+                    }
+                    else
+                    {
+                        var isActiveStr = Request.Query["isActive"].FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(isActiveStr) && bool.TryParse(isActiveStr, out var ia))
+                        {
+                            isActive = ia;
+                        }
+                    }
+                }
                 // Convert offset-based pagination to page-based
                 int pageNumber = (offset / (limit ?? 50)) + 1;
                 int pageSize = limit ?? 50;
 
-                var result = await _staffService.GetStaffPagedAsync(pageNumber, pageSize, search, role, null);
+                var result = await _staffService.GetStaffPagedAsync(pageNumber, pageSize, search, role, isActive);
 
                 if (result.Success)
                 {

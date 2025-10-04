@@ -57,9 +57,16 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
   // Debounced staff search using React Query
   const [staffSearchTerm, setStaffSearchTerm] = useState('')
   const staffQuery = useQuery<Staff[]>({
-    queryKey: ['staff-search', staffSearchTerm],
-    queryFn: () => staffApi.search(staffSearchTerm),
-    enabled: staffSearchTerm.length > 0 && dialogOpen,
+    queryKey: ['staff-search', staffSearchTerm, dialogOpen],
+    queryFn: () => {
+      const term = staffSearchTerm.trim()
+      if (!dialogOpen) return Promise.resolve([] as Staff[])
+      if (term.length === 0) {
+        return staffApi.getAll({ isActive: true, limit: 20 })
+      }
+      return staffApi.search(term, { activeOnly: true, limit: 20 })
+    },
+    enabled: dialogOpen,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   })
@@ -255,7 +262,7 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
             <Grid item xs={12} sm={6}>
               <Autocomplete
                 options={(staffQuery.data || []) as Staff[]}
-                getOptionLabel={(option: Staff) => `${option.firstName} ${option.lastName} (${option.staffId}) - ${option.email}`}
+                getOptionLabel={(option: Staff) => `${option.firstName} ${option.lastName} | ID:${option.staffId} | ${option.email}`}
                 loading={staffQuery.isLoading}
                 value={selectedStaff}
                 onChange={(_, value) => {
@@ -293,6 +300,22 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
                     }}
                   />
                 )}
+                renderOption={(props, option: Staff) => (
+                  <li {...props}>
+                    <Box>
+                      <Typography variant="body2">{option.firstName} {option.lastName}</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        ID: {option.staffId} • {option.email} • ✓ Active
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                onFocus={() => {
+                  // Ensure initial load shows active staff
+                  if (dialogOpen && staffSearchTerm === '') {
+                    setStaffSearchTerm('')
+                  }
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
