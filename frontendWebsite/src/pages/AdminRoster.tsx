@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   Box,
   Card,
@@ -25,7 +25,7 @@ import Autocomplete from '@mui/material/Autocomplete'
 import CircularProgress from '@mui/material/CircularProgress'
 import { Add, Edit, Delete } from '@mui/icons-material'
 import { workScheduleApi, staffApi } from '../api/client'
-import { CurrentUser, WorkSchedule } from '../types/api'
+import { CurrentUser, WorkSchedule, Staff } from '../types/api'
 
 interface AdminRosterProps {
   currentUser: CurrentUser
@@ -52,16 +52,16 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
   })
   const [error, setError] = useState<string | null>(null)
   const [staffInput, setStaffInput] = useState('')
-  const [selectedStaff, setSelectedStaff] = useState<any | null>(null)
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
 
   // Debounced staff search using React Query
   const [staffSearchTerm, setStaffSearchTerm] = useState('')
-  const staffQuery = useQuery({
+  const staffQuery = useQuery<Staff[]>({
     queryKey: ['staff-search', staffSearchTerm],
     queryFn: () => staffApi.search(staffSearchTerm),
     enabled: staffSearchTerm.length > 0 && dialogOpen,
     staleTime: 60_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   const { data: schedules = [], isLoading } = useQuery({
@@ -254,8 +254,8 @@ export function AdminRoster({ currentUser }: AdminRosterProps) {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <Autocomplete
-                options={(staffQuery.data || []) as any[]}
-                getOptionLabel={(option: any) => `${option.firstName} ${option.lastName} (${option.staffId}) - ${option.email}`}
+                options={(staffQuery.data || []) as Staff[]}
+                getOptionLabel={(option: Staff) => `${option.firstName} ${option.lastName} (${option.staffId}) - ${option.email}`}
                 loading={staffQuery.isLoading}
                 value={selectedStaff}
                 onChange={(_, value) => {
