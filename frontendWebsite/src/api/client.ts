@@ -1,5 +1,5 @@
 import { httpClient } from './http'
-import {
+import { 
   BiometricData,
   BiometricQuery,
   Device,
@@ -159,8 +159,14 @@ export const loginHistoryApi = {
 export const staffApi = {
   getAll: async (query?: StaffQuery): Promise<Staff[]> => {
     const params = new URLSearchParams()
-    if (query?.query) params.append('query', query.query)
+    if (query?.query) params.append('query', query.query) // alias accepted by backend
     
+    const response = await httpClient.get(`/api/Staffs?${params.toString()}`)
+    return response.data
+  },
+  search: async (term: string): Promise<Staff[]> => {
+    const params = new URLSearchParams()
+    params.append('query', term)
     const response = await httpClient.get(`/api/Staffs?${params.toString()}`)
     return response.data
   },
