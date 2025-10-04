@@ -94,6 +94,9 @@ export interface EventQuery {
 
 export interface StaffQuery {
   query?: string
+  isActive?: boolean
+  limit?: number
+  offset?: number
 }
 
 // Staff creation request interface (matches backend StaffCreateRequest)

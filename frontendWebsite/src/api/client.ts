@@ -160,13 +160,19 @@ export const staffApi = {
   getAll: async (query?: StaffQuery): Promise<Staff[]> => {
     const params = new URLSearchParams()
     if (query?.query) params.append('query', query.query) // alias accepted by backend
+    if (typeof query?.isActive === 'boolean') params.append('isActive', String(query.isActive))
+    if (typeof query?.limit === 'number') params.append('limit', String(query.limit))
+    if (typeof query?.offset === 'number') params.append('offset', String(query.offset))
     
     const response = await httpClient.get(`/api/Staffs?${params.toString()}`)
     return response.data
   },
-  search: async (term: string): Promise<Staff[]> => {
+  search: async (term: string, opts?: { activeOnly?: boolean; limit?: number; offset?: number }): Promise<Staff[]> => {
     const params = new URLSearchParams()
     params.append('query', term)
+    if (opts?.activeOnly) params.append('isActive', 'true')
+    if (typeof opts?.limit === 'number') params.append('limit', String(opts.limit))
+    if (typeof opts?.offset === 'number') params.append('offset', String(opts.offset))
     const response = await httpClient.get(`/api/Staffs?${params.toString()}`)
     return response.data
   },
